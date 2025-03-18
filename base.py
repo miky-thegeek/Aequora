@@ -1,6 +1,6 @@
 import csv
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def getCardTransaction(csvCard, dateBank, descPartsBank):
     rowNumberCard = 0
@@ -23,7 +23,7 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
                 if descPartsCard[0] == descPartsBank[3]:
 
                     #print(str(datetime_card)+" "+lineCard[3])
-                    print(str(datetime_card)+" "+descPartsCard[0]+" "+descPartsCard[1])
+                    #print(str(datetime_card)+" "+descPartsCard[0]+" "+descPartsCard[1])
                     otherAccounts.add(descPartsCard[0])
 
         rowNumberCard += 1
@@ -47,9 +47,10 @@ with open('/home/michele/Downloads/Elenco_Movimenti(2).csv', mode ='r') as fileB
                     datetimeBank = datetime.strptime(lineBank[1], '%d.%m.%Y')
                     descPartsBank = re.split(r'\s{2,}', lineBank[2])
 
-                    if "MASTERCARD" in lineBank[2]:
-                        print("datetime_bank: "+str(datetimeBank))
+                    print("datetime_bank: "+str(datetimeBank))
 
+                    if "MASTERCARD" in lineBank[2]:
+                        
                         #rowNumberCard = 0
                         fileCard.seek(0)
 
@@ -76,5 +77,22 @@ with open('/home/michele/Downloads/Elenco_Movimenti(2).csv', mode ='r') as fileB
                                         #otherAccounts.add(descPartsCard[0])
 
                             #rowNumberCard += 1
+                    elif "PayPal" in lineBank[2]:
+                        #payPalDate = datetimeBank - timedelta(days=3)
+                        #print("payPalDate: "+str(payPalDate))
+                        filePayPal.seek(0)
+                        rowNumberPayPal = 0
+                        for linePayPal in csvFilePayPal:
+
+                            if rowNumberPayPal > 0:
+
+                                datetimePayPal = datetime.strptime(linePayPal[0], '%d/%m/%Y')
+
+                                #if payPalDate == datetimePayPal:
+                                if lineBank[3] == linePayPal[5] and abs((datetimeBank - datetimePayPal).days) <= 3:
+                                    print(linePayPal)
+                            
+                            rowNumberPayPal += 1
+
                 rowNumberBank += 1
-            print(otherAccounts)
+            #print(otherAccounts)
