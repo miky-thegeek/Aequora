@@ -1,5 +1,6 @@
 import csv
 import re
+import compute_next_business_day
 from datetime import datetime, timedelta
 
 def getCardTransaction(csvCard, dateBank, descPartsBank):
@@ -51,37 +52,16 @@ with open('/home/michele/Downloads/Elenco_Movimenti(2).csv', mode ='r') as fileB
 
                     if "MASTERCARD" in lineBank[2]:
                         
-                        #rowNumberCard = 0
                         fileCard.seek(0)
 
                         getCardTransaction(csvFileCard, datetimeBank, descPartsBank)
                         
-                        #for lineCard in csvFileCard:
-                            #print(lineCard)
-                            #descPartsCard = re.split(r'\s{2,}', lineCard[3])
-
-                            #if rowNumberCard > 0:
-
-                                #datetime_card = datetime.strptime(lineCard[0], '%d/%m/%Y')
-
-                                #print("datetime_card: "+str(datetime_card))
-
-                                #if datetimeBank == datetime_card:
-                                    #timeCard = datetime.strptime(lineCard[1], '%H:%M')
-                                    #datetime_card = datetime_card.replace(hour=timeCard.hour, minute=timeCard.minute)
-
-                                    #if descPartsCard[0] == descPartsBank[3]:
-
-                                        #print(str(datetime_card)+" "+lineCard[3])
-                                        #print(str(datetime_card)+" "+descPartsCard[0]+" "+descPartsCard[1])
-                                        #otherAccounts.add(descPartsCard[0])
-
-                            #rowNumberCard += 1
                     elif "PayPal" in lineBank[2]:
                         #payPalDate = datetimeBank - timedelta(days=3)
                         #print("payPalDate: "+str(payPalDate))
                         filePayPal.seek(0)
                         rowNumberPayPal = 0
+                        transactionFound = False
                         for linePayPal in csvFilePayPal:
 
                             if rowNumberPayPal > 0:
@@ -89,10 +69,59 @@ with open('/home/michele/Downloads/Elenco_Movimenti(2).csv', mode ='r') as fileB
                                 datetimePayPal = datetime.strptime(linePayPal[0], '%d/%m/%Y')
 
                                 #if payPalDate == datetimePayPal:
-                                if lineBank[3] == linePayPal[5] and abs((datetimeBank - datetimePayPal).days) <= 3:
+                                if abs(float(lineBank[3].replace(',', '.'))) == abs(float(linePayPal[5].replace(',', '.'))) and compute_next_business_day.next_two_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
                                     print(linePayPal)
+                                    transactionFound = True
                             
                             rowNumberPayPal += 1
+                        
+                        if not transactionFound:
+                            filePayPal.seek(0)
+                            rowNumberPayPal = 0
+                            for linePayPal in csvFilePayPal:
+
+                                if rowNumberPayPal > 0:
+
+                                    datetimePayPal = datetime.strptime(linePayPal[0], '%d/%m/%Y')
+
+                                    #if payPalDate == datetimePayPal:
+                                    if abs(float(lineBank[3].replace(',', '.'))) == abs(float(linePayPal[5].replace(',', '.'))) and compute_next_business_day.next_three_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
+                                        print(linePayPal)
+                                        transactionFound = True
+                                
+                                rowNumberPayPal += 1
+
+                        if not transactionFound:
+                            filePayPal.seek(0)
+                            rowNumberPayPal = 0
+                            for linePayPal in csvFilePayPal:
+
+                                if rowNumberPayPal > 0:
+
+                                    datetimePayPal = datetime.strptime(linePayPal[0], '%d/%m/%Y')
+
+                                    #if payPalDate == datetimePayPal:
+                                    if abs(float(lineBank[3].replace(',', '.'))) == abs(float(linePayPal[5].replace(',', '.'))) and compute_next_business_day.next_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
+                                        print(linePayPal)
+                                        transactionFound = True
+                                
+                                rowNumberPayPal += 1
+
+                        if not transactionFound:
+                            filePayPal.seek(0)
+                            rowNumberPayPal = 0
+                            for linePayPal in csvFilePayPal:
+
+                                if rowNumberPayPal > 0:
+
+                                    datetimePayPal = datetime.strptime(linePayPal[0], '%d/%m/%Y')
+
+                                    #if payPalDate == datetimePayPal:
+                                    if abs(float(lineBank[3].replace(',', '.'))) == abs(float(linePayPal[5].replace(',', '.'))) and datetimePayPal.strftime('%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
+                                        print(linePayPal)
+                                        transactionFound = True
+                                
+                                rowNumberPayPal += 1
 
                 rowNumberBank += 1
             #print(otherAccounts)
