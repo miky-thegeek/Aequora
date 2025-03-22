@@ -5,7 +5,6 @@ import compute_next_business_day
 from datetime import datetime, timedelta
 
 def getCardTransaction(csvCard, dateBank, descPartsBank):
-    #fileCard.seek(0)
                         
     for lineCard in csvCard.itertuples():
         #print(lineCard)
@@ -60,56 +59,5 @@ for lineBank in csvFileBank.itertuples():
                     break
             if idDataset != -1:
                     break
-        
-"""         transactionFound = False
-        
-        for linePayPal in csvFilePayPal.itertuples():
-
-            datetimePayPal = datetime.strptime(linePayPal[1], '%d/%m/%Y')
-
-            #if payPalDate == datetimePayPal:
-            if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and compute_next_business_day.next_two_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
-                print(linePayPal)
-                transactionFound = True
-            
-        
-        if not transactionFound:
-
-            for linePayPal in csvFilePayPal.itertuples():
-
-                
-                datetimePayPal = datetime.strptime(linePayPal[1], '%d/%m/%Y')
-
-                #if payPalDate == datetimePayPal:
-                if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and compute_next_business_day.next_three_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
-                    print(linePayPal)
-                    transactionFound = True
-                
-
-        if not transactionFound:
-
-            rowNumberPayPal = 0
-            for linePayPal in csvFilePayPal.itertuples():
-
-
-                datetimePayPal = datetime.strptime(linePayPal[1], '%d/%m/%Y')
-
-                #if payPalDate == datetimePayPal:
-                if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and compute_next_business_day.next_business_day(datetimePayPal.strftime('%d/%m/%Y'), 'IT', '%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
-                    print(linePayPal)
-                    transactionFound = True
-            
-
-        if not transactionFound:
-
-            rowNumberPayPal = 0
-            for linePayPal in csvFilePayPal.itertuples():
-
-                datetimePayPal = datetime.strptime(linePayPal[1], '%d/%m/%Y')
-
-                #if payPalDate == datetimePayPal:
-                if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and datetimePayPal.strftime('%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
-                    print(linePayPal)
-                    transactionFound = True """
                 
     #print(otherAccounts)

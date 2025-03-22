@@ -1,10 +1,8 @@
-#import pandas as pd 
 import holidays
 from datetime import datetime, timedelta
 
 def __next_day(date):
     return date + timedelta(days=1)
-    #return pd.to_datetime(date, dayfirst=True).date() + pd.Timedelta(days=1)
 
 def __is_holiday(date, code):
     if "Festa della Liberazione" == holidays.country_holidays(code).get(date):
@@ -32,12 +30,6 @@ def next_business_day(date, code, format):
     next_date = __is_holiday(next_date, code)
     next_date = next_date.strftime(format)
     return next_date
-
-def next_two_business_day(date, code, format):
-    return next_business_day(next_business_day(date, code, format), code, format)
-
-def next_three_business_day(date, code, format):
-    return next_business_day(next_business_day(next_business_day(date, code, format), code, format), code, format)
 
 #print(next_business_day('23/04/2024', 'IT', '%d/%m/%Y'))
 
