@@ -26,7 +26,7 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
                 otherAccounts.add(descPartsCard[0])
 
 
-csvFileBank = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(2).csv', decimal=',', sep=';')
+csvFileBank = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(2).csv', decimal=",", sep=';')
 
 csvFileCard = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(1).csv', decimal=',', sep=';')
 
@@ -45,8 +45,23 @@ for lineBank in csvFileBank.itertuples():
         getCardTransaction(csvFileCard, datetimeBank, descPartsBank)
         
     elif "PayPal" in lineBank[3]:
+
+        idDataset = -1
+
+        for linePayPal in csvFilePayPal.itertuples():
+            datetimePayPal = datetime.strptime(linePayPal[1], '%d/%m/%Y')
+
+            for daysNumber in [2, 3, 1, 0]:
+                if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and compute_next_business_day.next_number_business_day(datetimePayPal, 'IT', daysNumber) == datetimeBank:
+                    print(linePayPal)
+                    idDataset = linePayPal[0]
+                
+                if idDataset != -1:
+                    break
+            if idDataset != -1:
+                    break
         
-        transactionFound = False
+"""         transactionFound = False
         
         for linePayPal in csvFilePayPal.itertuples():
 
@@ -95,6 +110,6 @@ for lineBank in csvFileBank.itertuples():
                 #if payPalDate == datetimePayPal:
                 if abs(float(lineBank[4].replace(',', '.'))) == abs(linePayPal[6]) and datetimePayPal.strftime('%d/%m/%Y') == datetimeBank.strftime('%d/%m/%Y'):
                     print(linePayPal)
-                    transactionFound = True
+                    transactionFound = True """
                 
     #print(otherAccounts)
