@@ -1,7 +1,7 @@
 import re
 import pandas
 import compute_next_business_day
-import decimal
+import normalization
 from datetime import datetime
 
 def getCardTransaction(csvCard, dateBank, descPartsBank):
@@ -35,30 +35,6 @@ def getPayPalTransaction(csvPayPal, ammount_bank, date_bank):
         if idDataset != -1:
                 break
 
-def normalizeBank(csvBank):
-    for lineBank in csvBank.itertuples():
-        csvBank.at[lineBank[0], 'Importo (EUR)'] = float(lineBank[4].replace('.', '').replace(',', '.'))
-
-def normalizePayPal(csvPayPal):
-    pagamenti = csvPayPal[csvPayPal['Descrizione'].str.contains('Pagamento')]
-    addebiti = csvPayPal[csvPayPal['Descrizione'].str.contains('Bonifico|Versamento generico con carta|Pagamento con credito acquirenti PayPal')]
-
-    indexes_to_drop = []
-    # Rimuovere gli addebiti corrispondenti ai pagamenti
-    for index, pagamento in pagamenti.iterrows():
-        importo = pagamento.iloc[5]
-        valuta = pagamento.iloc[4]
-
-        # Trova una riga 'Addebito' con la stessa valuta e importo negativo corrispondente
-        addebito_match = addebiti[
-            (addebiti['Valuta'] == valuta) &
-            (-addebiti['Lordo '] == importo)
-        ].index
-        indexes_to_drop.extend(addebito_match.to_list())
-
-        # Se esiste una corrispondenza, rimuoverla
-    if len(indexes_to_drop) > 0:
-        csvPayPal.drop(csvPayPal.index[indexes_to_drop], inplace=True)
 
 csvFileBank = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(2).csv', decimal=",", sep=';', parse_dates=[0, 1], dayfirst=True)
 
@@ -66,9 +42,9 @@ csvFileCard = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(1).csv',
 
 csvFilePayPal = pandas.read_csv('/home/michele/Downloads/L5BXD33J8AZMG-CSR-20230101000000-20250315235959-20250316052428.CSV', decimal=',', low_memory=False, parse_dates=[0, 1], dayfirst=True, date_format={'Data': '%d/%m/%Y', 'Ora': '%H:%M:%S'})
 
-normalizeBank(csvFileBank)
+normalization.normalizeBank(csvFileBank)
 
-normalizePayPal(csvFilePayPal)
+normalization.normalizePayPal(csvFilePayPal)
 #print(csvFilePayPal)
 
 otherAccounts = set()
