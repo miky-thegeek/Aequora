@@ -4,7 +4,7 @@ def normalizeBank(csvBank):
 
 def normalizePayPal(csvPayPal):
     pagamenti = csvPayPal[csvPayPal['Descrizione'].str.contains('Pagamento')]
-    addebiti = csvPayPal[csvPayPal['Descrizione'].str.contains('Bonifico|Versamento generico con carta|Pagamento con credito acquirenti PayPal')]
+    addebiti = csvPayPal[csvPayPal['Descrizione'].str.contains('Bonifico|Versamento generico con carta|Pagamento con credito acquirenti PayPal|Trasferimento avviato dall\'utente')]
 
     indexes_to_drop = []
     # Rimuovere gli addebiti corrispondenti ai pagamenti

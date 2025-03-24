@@ -3,17 +3,21 @@ from enum import Enum
 # Enum per la tipologia di transazione
 class TransactionType(Enum):
     DEPOSIT = "deposit"
-    DEBIT = "debit"
+    WITHDRAWAL = "withdrawal"
+    TRANSFER = "trabsfer"
 
 class FinancialTransaction:
-    def __init__(self, transaction_type, date, currency_code, amount, source_account, destination_account, category):
+
+    description = ""
+
+    def __init__(self, transaction_type, date, currency_code, amount, source_account, destination_account):
         self.transaction_type = self._validate_transaction_type(transaction_type)
-        self.date = self._validate_date(date)
+        self.date = date
         self.currency_code = currency_code.upper()  
         self.amount = amount
         self.source_account = source_account
         self.destination_account = destination_account
-        self.category = category
+        #self.category = category
 
     def _validate_transaction_type(self, transaction_type):
         if isinstance(transaction_type, TransactionType):
@@ -25,3 +29,24 @@ class FinancialTransaction:
                 raise ValueError(f"Invalid transaction type. Choose between: {[t.value for t in TransactionType]}")
         else:
             raise TypeError("Transaction type must be a TransactionType enum or a valid string.")
+        
+    def setDescription(self, description):
+        self.description = description
+
+    def __str__(self):
+        return (
+            f"Transaction({self.transaction_type.value}, Date: {self.date.strftime('%Y-%m-%d %H:%M')}, "
+            f"Currency: {self.currency_code}, Amount: {self.amount:.2f}, "
+            f"From: {self.source_account}, To: {self.destination_account}, "
+            f"Description: {self.description} )"
+            #f"Category: {self.category})"
+        )
+    
+    def __repr__(self):
+        return (
+            f"Transaction({self.transaction_type.value}, Date: {self.date.strftime('%Y-%m-%d %H:%M')}, "
+            f"Currency: {self.currency_code}, Amount: {self.amount:.2f}, "
+            f"From: {self.source_account}, To: {self.destination_account}, "
+            f"Description: {self.description} )"
+            #f"Category: {self.category})"
+        )
