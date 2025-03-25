@@ -89,202 +89,208 @@ def getPayPalTransaction(csvPayPal, ammount_bank, date_bank):
         #if idDataset != -1:
                 #break
 
+def unicreditMain(pathFileBank, pathFileCard, pathFilePayPal):
 
-csvFileBank = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(2).csv', decimal=",", sep=';', parse_dates=[0, 1], dayfirst=True)
+    csvFileBank = pandas.read_csv(pathFileBank, decimal=",", sep=';', parse_dates=[0, 1], dayfirst=True)
 
-csvFileCard = pandas.read_csv('/home/michele/Downloads/Elenco_Movimenti(1).csv', decimal=',', sep=';', parse_dates=[0, 1, 2], dayfirst=True, date_format={'Data Registrazione': '%d/%m/%Y', 'Ora operazione': '%H:%M', 'Data valuta': '%d/%m/%Y'})
+    csvFileCard = pandas.read_csv(pathFileCard, decimal=',', sep=';', parse_dates=[0, 1, 2], dayfirst=True, date_format={'Data Registrazione': '%d/%m/%Y', 'Ora operazione': '%H:%M', 'Data valuta': '%d/%m/%Y'})
 
-csvFilePayPal = pandas.read_csv('/home/michele/Downloads/L5BXD33J8AZMG-CSR-20230101000000-20250315235959-20250316052428.CSV', decimal=',', low_memory=False, parse_dates=[0, 1], dayfirst=True, date_format={'Data': '%d/%m/%Y', 'Ora': '%H:%M:%S'})
+    csvFilePayPal = pandas.read_csv(pathFilePayPal, decimal=',', low_memory=False, parse_dates=[0, 1], dayfirst=True, date_format={'Data': '%d/%m/%Y', 'Ora': '%H:%M:%S'})
 
-normalization.normalizeBank(csvFileBank)
+    normalization.normalizeBank(csvFileBank)
 
-normalization.normalizePayPal(csvFilePayPal)
-#print(csvFilePayPal)
+    normalization.normalizePayPal(csvFilePayPal)
+    #print(csvFilePayPal)
 
-transactions = []
-otherAccounts = set()
-for lineBank in csvFileBank.itertuples():
+    transactions = []
+    otherAccounts = set()
+    for lineBank in csvFileBank.itertuples():
 
-    descPartsBank = re.split(r'\s{2,}', lineBank[3])
+        descPartsBank = re.split(r'\s{2,}', lineBank[3])
 
-    #print("datetime_bank: "+str(lineBank[2].to_pydatetime()))
+        #print("datetime_bank: "+str(lineBank[2].to_pydatetime()))
 
-    if "MASTERCARD" in lineBank[3]:
+        if "MASTERCARD" in lineBank[3]:
 
-        transaction = getCardTransaction(csvFileCard, lineBank[2], descPartsBank)
-        if transaction == None:
-            print("NULL MASTERCARD")
-        else:
+            transaction = getCardTransaction(csvFileCard, lineBank[2], descPartsBank)
+            if transaction == None:
+                print("NULL MASTERCARD")
+            else:
+                transactions.append(transaction)
+                csvFileBank.drop(lineBank[0], inplace=True)
+            
+        elif "PayPal" in lineBank[3]:
+
+            transaction = getPayPalTransaction(csvFilePayPal, lineBank[4], lineBank[2].to_pydatetime())
+            if transaction == None:
+                print("NULL PayPal")
+            else:
+                transactions.append(transaction)
+                csvFileBank.drop(lineBank[0], inplace=True)
+
+        elif "VOSTRI EMOLUMENTI" in lineBank[3]:
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.DEPOSIT,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=lineBank[4],
+                source_account=descPartsBank[2],
+                destination_account="Unicredit"
+            )
+            transaction.setDescription(descPartsBank[3]+descPartsBank[4])
             transactions.append(transaction)
             csvFileBank.drop(lineBank[0], inplace=True)
         
-    elif "PayPal" in lineBank[3]:
-
-        transaction = getPayPalTransaction(csvFilePayPal, lineBank[4], lineBank[2].to_pydatetime())
-        if transaction == None:
-            print("NULL PayPal")
-        else:
+        elif "FINDOMESTIC" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.TRANSFER,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account="Findomestic"
+            )
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+        
+        elif "ADDEBITO SEPA DD" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account=descPartsBank[3]
+            )
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+        
+        elif "PRELIEVO" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.TRANSFER,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account="Contanti"
+            )
             transactions.append(transaction)
             csvFileBank.drop(lineBank[0], inplace=True)
 
-    elif "VOSTRI EMOLUMENTI" in lineBank[3]:
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.DEPOSIT,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=lineBank[4],
-            source_account=descPartsBank[2],
-            destination_account="Unicredit"
-        )
-        transaction.setDescription(descPartsBank[3]+descPartsBank[4])
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "FINDOMESTIC" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.TRANSFER,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account="Findomestic"
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "ADDEBITO SEPA DD" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account=descPartsBank[3]
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "PRELIEVO" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.TRANSFER,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account="Contanti"
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
+        elif "BONIFICO A VOSTRO FAVORE" in lineBank[3].upper():
 
-    elif "BONIFICO A VOSTRO FAVORE" in lineBank[3].upper():
+            if "BONIFICO SEPA" in descPartsBank[1]:
+                description = descPartsBank[3]+descPartsBank[4]
+            else:
+                description = descPartsBank[1]
 
-        if "BONIFICO SEPA" in descPartsBank[1]:
-            description = descPartsBank[3]+descPartsBank[4]
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.DEPOSIT,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account=descPartsBank[2],
+                destination_account="Unicredit"
+            )
+            transaction.setDescription(description)
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+
+        elif "DISPOSIZIONE DI BONIFICO" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account=descPartsBank[2]
+            )
+            transaction.setDescription(descPartsBank[1])
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+
+        elif "DISPOSIZIONE DI ADDEBITO" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account=descPartsBank[1]
+            )
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+        
+        elif "COMMISSIONI - PROVVIGIONI - SPESE" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account="Banca Unicredit"
+            )
+            transaction.setDescription(descPartsBank[1])
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+
+        elif "IMPOSTA BOLLO" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account="Banca Unicredit"
+            )
+            transaction.setDescription(descPartsBank[0])
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+        
+        elif "CARTA *3455" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.WITHDRAWAL,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Unicredit",
+                destination_account=descPartsBank[4]
+            )
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+
+        elif "VERSAMENTO" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.DEPOSIT,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Risparmi",
+                destination_account="Unicredit"
+            )
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+        
+        elif "ACCREDITI VARI" in lineBank[3].upper():
+            transaction = FinancialTransaction(
+                transaction_type=TransactionType.DEPOSIT,
+                date=lineBank[2].to_pydatetime(),
+                currency_code="EUR",
+                amount=abs(lineBank[4]),
+                source_account="Banca Unicredit",
+                destination_account="Unicredit"
+            )
+            transaction.setDescription(descPartsBank[1])
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
+
         else:
-            description = descPartsBank[1]
+            print(lineBank)
 
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.DEPOSIT,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account=descPartsBank[2],
-            destination_account="Unicredit"
-        )
-        transaction.setDescription(description)
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
+        #print(otherAccounts)
+    #print(transactions)
+    return transactions
 
-    elif "DISPOSIZIONE DI BONIFICO" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account=descPartsBank[2]
-        )
-        transaction.setDescription(descPartsBank[1])
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-
-    elif "DISPOSIZIONE DI ADDEBITO" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account=descPartsBank[1]
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "COMMISSIONI - PROVVIGIONI - SPESE" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account="Banca Unicredit"
-        )
-        transaction.setDescription(descPartsBank[1])
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-
-    elif "IMPOSTA BOLLO" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account="Banca Unicredit"
-        )
-        transaction.setDescription(descPartsBank[0])
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "CARTA *3455" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.WITHDRAWAL,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Unicredit",
-            destination_account=descPartsBank[4]
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-
-    elif "VERSAMENTO" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.DEPOSIT,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Risparmi",
-            destination_account="Unicredit"
-        )
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-    
-    elif "ACCREDITI VARI" in lineBank[3].upper():
-        transaction = FinancialTransaction(
-            transaction_type=TransactionType.DEPOSIT,
-            date=lineBank[2].to_pydatetime(),
-            currency_code="EUR",
-            amount=abs(lineBank[4]),
-            source_account="Banca Unicredit",
-            destination_account="Unicredit"
-        )
-        transaction.setDescription(descPartsBank[1])
-        transactions.append(transaction)
-        csvFileBank.drop(lineBank[0], inplace=True)
-
-    else:
-        print(lineBank)
-
-    #print(otherAccounts)
-print(transactions)
+if __name__ == '__main__':
+    unicreditMain('/home/michele/Downloads/Elenco_Movimenti(2).csv', '/home/michele/Downloads/Elenco_Movimenti(1).csv', 
+                '/home/michele/Downloads/L5BXD33J8AZMG-CSR-20230101000000-20250315235959-20250316052428.CSV')

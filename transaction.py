@@ -33,6 +33,15 @@ class FinancialTransaction:
     def setDescription(self, description):
         self.description = description
 
+    def getHTMLDate(self):
+        return self.date.strftime('%Y-%m-%dT%H:%M')
+    
+    def getAccountCounterparty(self, bankAccount):
+        if bankAccount == self.source_account:
+            return self.destination_account
+        else:
+            return self.source_account
+
     def __str__(self):
         return (
             f"Transaction({self.transaction_type.value}, Date: {self.date.strftime('%Y-%m-%d %H:%M')}, "

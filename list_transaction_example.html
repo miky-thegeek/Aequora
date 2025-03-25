@@ -49,13 +49,13 @@
             </tr>
         </thead>
         <tbody id="transactionTableBody">
-            {% for transaction in transactions %}
+            
             <tr>
-                <td><input type="datetime-local" value="{{ transaction.getHTMLDate() }}"></td>
+                <td><input type="datetime-local" value="2024-03-16T10:00"></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <input type="text" list="accountList" id="accountCounterparty" value="{{ transaction.getAccountCounterparty('Unicredit') }}" class="track-changeAccount">
-                        <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
+                        <input type="text" list="accountList" id="accountCounterparty" value="Controparte 1" class="track-changeAccount">
+                        <button class="editAccount" onclick="editAccount(this)">✎</button>
                     </div>
                     <span class="old-value">Controparte 1</span>
                 </td>
@@ -63,13 +63,31 @@
                     <input type="text" value="Pagamento fattura" class="track-change">
                     <span class="old-value">Pagamento fattura</span>
                 </td>
-                <td><input type="number" step="0.01" value="{{ transaction.amount }}"></td>
+                <td><input type="number" step="0.01" value="100.00"></td>
                 <td>
                     <input type="text" list="categoryList" value="Spese" class="track-change">
                     <span class="old-value">Spese</span>
                 </td>
             </tr>
-            {% endfor %}
+            <tr>
+                <td><input type="datetime-local" value="2024-03-17T15:00"></td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" list="accountList" value="Controparte 1" class="track-change">
+                        <button class="editAccount" onclick="editAccount(this)">✎</button>
+                    </div>
+                    <span class="old-value">Controparte 1</span>
+                </td>
+                <td>
+                    <input type="text" value="Rimborso viaggio" class="track-change">
+                    <span class="old-value">Rimborso viaggio</span>
+                </td>
+                <td><input type="number" step="0.01" value="200.00"></td>
+                <td>
+                    <input type="text" list="categoryList" value="Rimborso" class="track-change">
+                    <span class="old-value">Rimborso</span>
+                </td>
+            </tr>
         </tbody>
     </table>
 
