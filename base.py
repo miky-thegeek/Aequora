@@ -29,6 +29,8 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
                     destination_account=descPartsCard[0]
                 )
 
+                csvCard.drop(lineCard[0], inplace=True)
+
                 return transaction
             elif descPartsCard[0] == descPartsBank[4]:
 
@@ -43,6 +45,8 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
                     source_account="Unicredit",
                     destination_account=descPartsCard[0]
                 )
+
+                csvCard.drop(lineCard[0], inplace=True)
 
                 return transaction
 
@@ -76,6 +80,8 @@ def getPayPalTransaction(csvPayPal, ammount_bank, date_bank):
                     destination_account=destinationAccount
                 )
 
+                csvPayPal.drop(linePayPal[0], inplace=True)
+
                 return transaction
             
             #if idDataset != -1:
@@ -108,7 +114,9 @@ for lineBank in csvFileBank.itertuples():
         transaction = getCardTransaction(csvFileCard, lineBank[2], descPartsBank)
         if transaction == None:
             print("NULL MASTERCARD")
-        transactions.append(transaction)
+        else:
+            transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
         
     elif "PayPal" in lineBank[3]:
 
@@ -117,6 +125,7 @@ for lineBank in csvFileBank.itertuples():
             print("NULL PayPal")
         else:
             transactions.append(transaction)
+            csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "VOSTRI EMOLUMENTI" in lineBank[3]:
         transaction = FinancialTransaction(
@@ -129,6 +138,7 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(descPartsBank[3]+descPartsBank[4])
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "FINDOMESTIC" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -140,6 +150,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account="Findomestic"
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "ADDEBITO SEPA DD" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -151,6 +162,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account=descPartsBank[3]
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "PRELIEVO" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -162,6 +174,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account="Contanti"
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "BONIFICO A VOSTRO FAVORE" in lineBank[3].upper():
 
@@ -180,6 +193,7 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(description)
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "DISPOSIZIONE DI BONIFICO" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -192,6 +206,7 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(descPartsBank[1])
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "DISPOSIZIONE DI ADDEBITO" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -203,6 +218,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account=descPartsBank[1]
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "COMMISSIONI - PROVVIGIONI - SPESE" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -215,6 +231,7 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(descPartsBank[1])
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "IMPOSTA BOLLO" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -227,6 +244,7 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(descPartsBank[0])
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "CARTA *3455" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -238,6 +256,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account=descPartsBank[4]
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     elif "VERSAMENTO" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -249,6 +268,7 @@ for lineBank in csvFileBank.itertuples():
             destination_account="Unicredit"
         )
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
     
     elif "ACCREDITI VARI" in lineBank[3].upper():
         transaction = FinancialTransaction(
@@ -261,9 +281,10 @@ for lineBank in csvFileBank.itertuples():
         )
         transaction.setDescription(descPartsBank[1])
         transactions.append(transaction)
+        csvFileBank.drop(lineBank[0], inplace=True)
 
     else:
         print(lineBank)
 
     #print(otherAccounts)
-#print(transactions)
+print(transactions)

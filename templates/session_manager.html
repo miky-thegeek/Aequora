@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Sessioni</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .hidden { display: none; }
+        .form-container { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        button { margin: 5px 0; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>Gestione delle Sessioni</h1>
+
+    <button onclick="showForm('newSessionForm')">Inizia una nuova sessione</button>
+    <button onclick="showForm('continueSessionForm')">Continua una sessione precedente</button>
+
+    <div id="newSessionForm" class="form-container hidden">
+        <h2>Carica i file per una nuova sessione</h2>
+        <form method = "POST"  enctype = "multipart/form-data">
+            <label for="bankFile">File CSV della banca:</label>
+            <input type="file" id="bankFile" name="bankFile" accept=".csv" required><br><br>
+
+            <label for="debitCardFile">File CSV della carta di debito:</label>
+            <input type="file" id="debitCardFile" name="debitCardFile" accept=".csv" required><br><br>
+
+            <label for="paypalFile">File CSV di PayPal:</label>
+            <input type="file" id="paypalFile" name="paypalFile" accept=".csv" required><br><br>
+
+            <button type="submit">Avvia Sessione</button>
+        </form>
+    </div>
+
+    <div id="continueSessionForm" class="form-container hidden">
+        <h2>Carica il file della sessione precedente</h2>
+        <form>
+            <label for="previousSessionFile">File CSV della sessione precedente:</label>
+            <input type="file" id="previousSessionFile" accept=".csv" required><br><br>
+
+            <button type="submit">Continua Sessione</button>
+        </form>
+    </div>
+
+    <script>
+        function showForm(formId) {
+            document.getElementById('newSessionForm').classList.add('hidden');
+            document.getElementById('continueSessionForm').classList.add('hidden');
+            document.getElementById(formId).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
