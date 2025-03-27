@@ -7,6 +7,10 @@ from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv
 
+import pandas
+from transaction import FinancialTransaction, TransactionType
+from datetime import datetime
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'upload'
 
@@ -16,10 +20,33 @@ fireflyIII = FireflyIII("http://192.168.1.30:8081/", os.environ["fireflyIII_id"]
 def index():
     if request.method == 'POST':
 
+        filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
         if "previousSessionFile" in request.files:
             previousSessionFile = request.files['previousSessionFile']
+            previousSessionFilePath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileSession.csv")
+            previousSessionFile.save(previousSessionFilePath)
+
+            transactionsNotExistend = {}
+            i = 0
+            csvFileSession = pandas.read_csv(previousSessionFilePath)
+            os.remove(previousSessionFilePath)
+
+            for lineSession in csvFileSession.itertuples():
+
+                if lineSession[2] == "withdrawal":
+                    transactionType = TransactionType.WITHDRAWAL
+                elif lineSession[2] == "deposit":
+                    transactionType = TransactionType.DEPOSIT
+                else:
+                    transactionType = TransactionType.TRANSFER
+
+                date = datetime.strptime(lineSession[1], '%Y-%m-%dT%H:%M')
+
+                transactionsNotExistend.update({i: FinancialTransaction(transactionType, date, "EUR", lineSession[5], lineSession[3], lineSession[4])})
+                i += 1
+            return render_template('list_transaction.html', transactions=transactionsNotExistend)
         else:
-            filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
             
             fileBank = request.files['bankFile']
             fileBankPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileBank.csv")
@@ -49,6 +76,7 @@ def index():
                 result = fireflyIII.searchTransations(query)
 
                 if len(result["data"]) == 0:
+                    print(transaction)
                     transactionsNotExistend.update({i: transaction})
                     i += 1
 
@@ -80,9 +108,12 @@ def save():
     csv_rows = []
     for key, value in grouped_data.items():
         csv_rows.append(value)
+
+    filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    fileOutputPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileTransactions.csv")
     
-    with open('transactions.csv', 'w', newline='') as csvfile:
-        fieldnames = ['date', 'sourceAccount', 'destinationAccount', 'amount']
+    with open(fileOutputPath, 'w', newline='') as csvfile:
+        fieldnames = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'amount']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)

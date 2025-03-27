@@ -35,6 +35,7 @@
         <thead>
             <tr>
                 <th>Data e Ora</th>
+                <th>Tipologia</th>
                 <th>Account sorgente</th>
                 <th>Account destinatario</th>
                 <th>Descrizione</th>
@@ -47,6 +48,11 @@
                 {% for key, transaction in transactions.items() %}
                 <tr>
                     <td><input type="datetime-local" name="date_{{ key }}" value="{{ transaction.getHTMLDate() }}"></td>
+                    <td><select name="transactionType_{{ key }}" id="transactionType_{{ key }}" autocomplete="off"><option value="">Tipo transizione</option>
+                        <option value="withdrawal" {% if transaction.transaction_type.value == "withdrawal" %} selected {% endif %}>Prelievo</option>
+                        <option value="deposit" {% if transaction.transaction_type.value == "deposit" %} selected {% endif %}>Deposito</option>
+                        <option value="transfer" {% if transaction.transaction_type.value == "transfer" %} selected {% endif %}>Trasferimento</option></select>
+                    </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
                             <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" class="track-changeAccount">

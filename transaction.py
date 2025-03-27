@@ -4,7 +4,7 @@ from enum import Enum
 class TransactionType(Enum):
     DEPOSIT = "deposit"
     WITHDRAWAL = "withdrawal"
-    TRANSFER = "trabsfer"
+    TRANSFER = "transfer"
 
 class FinancialTransaction:
 

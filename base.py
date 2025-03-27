@@ -114,7 +114,8 @@ def unicreditMain(pathFileBank, pathFileCard, pathFilePayPal):
 
             transaction = getCardTransaction(csvFileCard, lineBank[2], descPartsBank)
             if transaction == None:
-                print("NULL MASTERCARD")
+                #print("NULL MASTERCARD")
+                continue
             else:
                 transactions.append(transaction)
                 csvFileBank.drop(lineBank[0], inplace=True)
@@ -123,7 +124,8 @@ def unicreditMain(pathFileBank, pathFileCard, pathFilePayPal):
 
             transaction = getPayPalTransaction(csvFilePayPal, lineBank[4], lineBank[2].to_pydatetime())
             if transaction == None:
-                print("NULL PayPal")
+                #print("NULL PayPal")
+                continue
             else:
                 transactions.append(transaction)
                 csvFileBank.drop(lineBank[0], inplace=True)
@@ -285,7 +287,8 @@ def unicreditMain(pathFileBank, pathFileCard, pathFilePayPal):
             csvFileBank.drop(lineBank[0], inplace=True)
 
         else:
-            print(lineBank)
+            #print(lineBank)
+            continue
 
         #print(otherAccounts)
     #print(transactions)
