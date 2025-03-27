@@ -44,7 +44,7 @@ def index():
                 date = datetime.strptime(lineSession[1], '%Y-%m-%dT%H:%M')
 
                 financialTransaction = FinancialTransaction(transactionType, date, "EUR", lineSession[6], lineSession[3], lineSession[4])
-                print(lineSession[5])
+
                 if not pandas.isna(lineSession[5]):
                     financialTransaction.setDescription(lineSession[5])
 
