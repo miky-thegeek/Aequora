@@ -1,2 +1,6 @@
 re.split(r'\s{2,}', testo)
 
+amount:123.45 date_on:2023-01-01
+
+amount:150.00 date_on:2023-01-30
+

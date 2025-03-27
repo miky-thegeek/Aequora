@@ -42,7 +42,8 @@
         <thead>
             <tr>
                 <th>Data e Ora</th>
-                <th>Account della controparte</th>
+                <th>Sorgente</th>
+                <th>Destinatario</th>
                 <th>Descrizione</th>
                 <th>Ammontare</th>
                 <th>Categoria</th>
@@ -54,7 +55,14 @@
                 <td><input type="datetime-local" value="2024-03-16T10:00"></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <input type="text" list="accountList" id="accountCounterparty" value="Controparte 1" class="track-changeAccount">
+                        <input type="text" list="accountList" id="sourceAccount" value="Controparte 1" class="track-changeAccount">
+                        <button class="editAccount" onclick="editAccount(this)">✎</button>
+                    </div>
+                    <span class="old-value">Controparte 1</span>
+                </td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" list="accountList" id="destinationAccount" value="Controparte 1" class="track-changeAccount">
                         <button class="editAccount" onclick="editAccount(this)">✎</button>
                     </div>
                     <span class="old-value">Controparte 1</span>
@@ -73,7 +81,14 @@
                 <td><input type="datetime-local" value="2024-03-17T15:00"></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <input type="text" list="accountList" value="Controparte 1" class="track-change">
+                        <input type="text" list="accountList" id="sourceAccount" value="Controparte 1" class="track-change">
+                        <button class="editAccount" onclick="editAccount(this)">✎</button>
+                    </div>
+                    <span class="old-value">Controparte 1</span>
+                </td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" list="accountList" id="destinationAccount" value="Controparte 1" class="track-changeAccount">
                         <button class="editAccount" onclick="editAccount(this)">✎</button>
                     </div>
                     <span class="old-value">Controparte 1</span>

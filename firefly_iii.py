@@ -5,16 +5,17 @@ import base64
 
 class FireflyIII:
 
-    def __init__(self, clientID, clientSecret):
+    def __init__(self, baseURL, clientID, clientSecret):
+        self.base_url = baseURL
         self.client_id = clientID
         self.client_secret = clientSecret
         self.client = WebApplicationClient(self.client_id)
 
     def startAuth(self):
         return self.client.prepare_request_uri(
-            "http://192.168.1.30:8081/oauth/authorize",
+            self.base_url+"oauth/authorize",
             redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
-            )
+        )
     
     def continueAuth(self, code):
         data = self.client.prepare_request_body(
@@ -22,10 +23,9 @@ class FireflyIII:
             redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
             client_id = self.client_id,
             client_secret = self.client_secret
-            )
-        token_url = 'http://192.168.1.30:8081/oauth/token'
+        )
+        token_url = self.base_url+"oauth/token"
         
-
         client_id = urllib.parse.quote(self.client_id.encode('utf8'))
         clientSecret = urllib.parse.quote(self.client_secret.encode('utf8'))
         code_bytes = f"{client_id}:{clientSecret}".encode('ascii')
@@ -37,9 +37,9 @@ class FireflyIII:
         response = requests.post(token_url, data=data, headers=headers)
         if response.json().get('hint') == "Authorization code has expired":
             return False
+        
         #print("response: "+str(response.json()))
         self.client.parse_request_body_response(response.text)
-        #print(self.client.token['access_token'])
         return True
 
     
@@ -54,6 +54,6 @@ class FireflyIII:
         headers = {
             'Accept': 'application/vnd.api+json',
             'Authorization': 'Bearer '+self.client.token['access_token'] }
-        response = requests.request("GET", "http://192.168.1.30:8081/api/v1/search/transactions?query="+urllib.parse.quote(query), headers=headers)
+        response = requests.request("GET", self.base_url+"api/v1/search/transactions?query="+urllib.parse.quote(query), headers=headers)
 
         return response.json()

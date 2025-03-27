@@ -17,13 +17,6 @@
 <body>
     <h1>Gestione delle Transazioni</h1>
 
-    <label for="accountSelect">Seleziona conto bancario e valuta:</label>
-    <select id="accountSelect">
-        <option value="conto1">Conto 1 - EUR</option>
-        <option value="conto2">Conto 2 - USD</option>
-        <option value="conto3">Conto 3 - GBP</option>
-    </select>
-
     <datalist id="accountList">
         <option value="Controparte 1">
         <option value="Controparte 2">
@@ -42,34 +35,45 @@
         <thead>
             <tr>
                 <th>Data e Ora</th>
-                <th>Account della controparte</th>
+                <th>Account sorgente</th>
+                <th>Account destinatario</th>
                 <th>Descrizione</th>
                 <th>Ammontare</th>
                 <th>Categoria</th>
             </tr>
         </thead>
         <tbody id="transactionTableBody">
-            {% for transaction in transactions %}
-            <tr>
-                <td><input type="datetime-local" value="{{ transaction.getHTMLDate() }}"></td>
-                <td>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" list="accountList" id="accountCounterparty" value="{{ transaction.getAccountCounterparty('Unicredit') }}" class="track-changeAccount">
-                        <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
-                    </div>
-                    <span class="old-value">Controparte 1</span>
-                </td>
-                <td>
-                    <input type="text" value="Pagamento fattura" class="track-change">
-                    <span class="old-value">Pagamento fattura</span>
-                </td>
-                <td><input type="number" step="0.01" value="{{ transaction.amount }}"></td>
-                <td>
-                    <input type="text" list="categoryList" value="Spese" class="track-change">
-                    <span class="old-value">Spese</span>
-                </td>
-            </tr>
-            {% endfor %}
+            <form method="post" action="/save">
+                {% for key, transaction in transactions.items() %}
+                <tr>
+                    <td><input type="datetime-local" name="date_{{ key }}" value="{{ transaction.getHTMLDate() }}"></td>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" class="track-changeAccount">
+                            <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
+                        </div>
+                        <span class="old-value">Controparte 1</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" class="track-changeAccount">
+                            <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
+                        </div>
+                        <span class="old-value">Controparte 1</span>
+                    </td>
+                    <td>
+                        <input type="text" value="{{ transaction.description }}" class="track-change">
+                        <span class="old-value">{{ transaction.description }}</span>
+                    </td>
+                    <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}"></td>
+                    <td>
+                        <input type="text" list="categoryList" value="Spese" class="track-change">
+                        <span class="old-value">Spese</span>
+                    </td>
+                </tr>
+                {% endfor %}
+                <input type="submit" value="Invia">
+            </form>
         </tbody>
     </table>
 
