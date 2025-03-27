@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-    <h1>Gestione delle Transazioni</h1>
+    <h1>Importazione delle Transazioni</h1>
 
     <datalist id="accountList">
         <option value="Controparte 1">
@@ -68,7 +68,7 @@
                         <span class="old-value">Controparte 1</span>
                     </td>
                     <td>
-                        <input type="text" value="{{ transaction.description }}" class="track-change">
+                        <input type="text" name="description_{{ key }}" value="{{ transaction.description }}" class="track-change">
                         <span class="old-value">{{ transaction.description }}</span>
                     </td>
                     <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}"></td>

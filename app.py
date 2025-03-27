@@ -43,7 +43,12 @@ def index():
 
                 date = datetime.strptime(lineSession[1], '%Y-%m-%dT%H:%M')
 
-                transactionsNotExistend.update({i: FinancialTransaction(transactionType, date, "EUR", lineSession[5], lineSession[3], lineSession[4])})
+                financialTransaction = FinancialTransaction(transactionType, date, "EUR", lineSession[6], lineSession[3], lineSession[4])
+                print(lineSession[5])
+                if not pandas.isna(lineSession[5]):
+                    financialTransaction.setDescription(lineSession[5])
+
+                transactionsNotExistend.update({i: financialTransaction})
                 i += 1
             return render_template('list_transaction.html', transactions=transactionsNotExistend)
         else:
@@ -113,7 +118,7 @@ def save():
     fileOutputPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileTransactions.csv")
     
     with open(fileOutputPath, 'w', newline='') as csvfile:
-        fieldnames = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'amount']
+        fieldnames = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'description', 'amount']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)
