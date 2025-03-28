@@ -207,7 +207,7 @@ def unicreditMain(pathFileBank, pathFileCard, pathFilePayPal):
                 source_account="Unicredit",
                 destination_account=descPartsBank[2]
             )
-            transaction.setDescription(descPartsBank[1])
+            transaction.setDescription(descPartsBank[3])
             transactions.append(transaction)
             csvFileBank.drop(lineBank[0], inplace=True)
 
