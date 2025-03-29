@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
@@ -16,6 +16,52 @@ app.config['UPLOAD_FOLDER'] = 'upload'
 
 fireflyIII = FireflyIII("http://192.168.1.30:8081/", os.environ["fireflyIII_id"], os.environ["fireflyIII_secret"])
 
+def checkExistingTransations(sourceTransations):
+    transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
+
+    transactionsNotExistend = {}
+    i = 0
+    j = 0
+    #for j in range(len(transactionsSorted)):
+    while j < len(transactionsSorted):
+        query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+        
+        goNext = True
+        k = j + 1
+        n = 1
+        
+        if (k != len(transactionsSorted)):
+            while(goNext):
+                #print('j: '+str(j)+' k: '+str(k)+" len transactionsSorted"+str(len(transactionsSorted)))
+                if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
+                    n += 1
+                    goNext = True
+                else:
+                    goNext = False
+                if (k != len(transactionsSorted) - 1):
+                    k += 1
+        
+        
+        result = fireflyIII.searchTransations(query)
+
+        if len(result["data"]) != n:
+            #print("IF n: "+str(n)+"len result: "+str(len(result["data"])) )
+            #print("IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
+            query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+
+            result = fireflyIII.searchTransations(query)
+
+            if len(result["data"]) != 1:
+                #print("IF IF n: "+str(n)+"len result: "+str(len(result["data"])) )
+                #print("IF IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
+                #print(transaction)
+                for z in range(j, j+n):
+                    transactionsNotExistend.update({i: transactionsSorted[z]})
+                    i += 1
+        j += n
+        #print("j: "+str(j)) 
+    return transactionsNotExistend
+
 @app.route('/', methods=['POST', 'GET'])
 def index():
     if request.method == 'POST':
@@ -30,7 +76,8 @@ def index():
             previousSessionFilePath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileSession.csv")
             previousSessionFile.save(previousSessionFilePath)
 
-            transactionsNotExistend = {}
+            #transactionsNotExistend = {}
+            transactions = []
             i = 0
             csvFileSession = pandas.read_csv(previousSessionFilePath)
             os.remove(previousSessionFilePath)
@@ -51,8 +98,12 @@ def index():
                 if not pandas.isna(lineSession[5]):
                     financialTransaction.setDescription(lineSession[5])
 
-                transactionsNotExistend.update({i: financialTransaction})
+                #transactionsNotExistend.update({i: financialTransaction})
+                transactions.append(financialTransaction)
                 i += 1
+            
+            transactionsNotExistend = checkExistingTransations(transactions)
+
             return render_template('list_transaction.html', transactions=transactionsNotExistend)
         else:
             
@@ -74,7 +125,9 @@ def index():
             os.remove(fileCardPath)
             os.remove(filePayPalPath)
 
-            transactionsSorted = sorted(transactions, key=lambda x: (x.date, x.amount))
+            transactionsNotExistend = checkExistingTransations(transactions)
+
+            """ transactionsSorted = sorted(transactions, key=lambda x: (x.date, x.amount))
 
             transactionsNotExistend = {}
             i = 0
@@ -103,19 +156,20 @@ def index():
 
                 if len(result["data"]) != n:
                     #print("IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-                    print("IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
+                    #print("IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
                     query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
 
                     result = fireflyIII.searchTransations(query)
 
                     if len(result["data"]) != 1:
                         #print("IF IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-                        print("IF IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
+                        #print("IF IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
                         #print(transaction)
-                        transactionsNotExistend.update({i: transactionsSorted[j]})
-                        i += 1
+                        for z in range(j, j+n):
+                            transactionsNotExistend.update({i: transactionsSorted[z]})
+                            i += 1
                 j += n
-                print("j: "+str(j))
+                #print("j: "+str(j)) """
 
             return render_template('list_transaction.html', transactions=transactionsNotExistend)
     else:
@@ -155,7 +209,8 @@ def save():
         writer.writeheader()
         writer.writerows(csv_rows)
 
-    return str(grouped_data)
+    #return str(grouped_data)
+    return send_file(fileOutputPath, as_attachment=True)
 
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'

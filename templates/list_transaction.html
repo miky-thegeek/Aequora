@@ -6,6 +6,7 @@
     <title>Gestione Transazioni</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { width: 500px;display: block;float: left;}
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         th { background-color: #f2f2f2; }
@@ -13,10 +14,11 @@
         .old-value { color: gray; font-style: italic; font-size: 0.8em; display: none; margin-top: 2px; }
         .editAccount {display: none;}
     </style>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
     <h1>Importazione delle Transazioni</h1>
-
+    <input type="button" value="Salva" onclick="submitForm()" style="width: 100px;margin-top: 27px;">
     <datalist id="accountList">
         <option value="Controparte 1">
         <option value="Controparte 2">
@@ -44,7 +46,7 @@
             </tr>
         </thead>
         <tbody id="transactionTableBody">
-            <form method="post" action="/save">
+            <form method="post" action="/save" id="transactionsForm">
                 {% for key, transaction in transactions.items() %}
                 <tr>
                     <td><input type="datetime-local" name="date_{{ key }}" value="{{ transaction.getHTMLDate() }}"></td>
@@ -78,12 +80,53 @@
                     </td>
                 </tr>
                 {% endfor %}
-                <input type="submit" value="Salva">
+                <!--<input type="submit" value="Salva">-->
             </form>
         </tbody>
     </table>
 
     <script>
+
+        function submitForm() {
+            $.ajax({
+                type: "POST",
+                url: "/save",
+                data: $( "#transactionsForm" ).serialize(),
+                //dataType: "html",
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(data, textStatus, jqXHR) {
+                    //console.log(data);
+                    //console.log(textStatus);
+                    //console.log(jqXHR);
+
+                    var filename = "";
+                    var disposition = jqXHR.getResponseHeader('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        var matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) { 
+                        filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(data);
+                    a.href = url;
+                    a.download = filename;
+                    document.body.append(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR);
+                    console.log(errorThrown);
+                    console.log(textStatus);
+                }
+            });
+        }
 
         function trovaProssimoSpan(elemento) {
         let prossimoElemento = elemento.nextElementSibling;
