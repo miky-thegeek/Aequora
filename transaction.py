@@ -33,6 +33,12 @@ class FinancialTransaction:
     def setDescription(self, description):
         self.description = description
 
+    def setSourceAccountID(self, sourceAccountID):
+        self.source_account_id = sourceAccountID
+
+    def setDestinationAccountID(self, destinationAccountID):
+        self.destination_account_id = destinationAccountID
+
     def getHTMLDate(self):
         return self.date.strftime('%Y-%m-%dT%H:%M')
     

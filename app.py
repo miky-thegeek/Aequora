@@ -22,7 +22,7 @@ def checkExistingTransations(sourceTransations):
     transactionsNotExistend = {}
     i = 0
     j = 0
-    #for j in range(len(transactionsSorted)):
+
     while j < len(transactionsSorted):
         query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
         
@@ -32,7 +32,6 @@ def checkExistingTransations(sourceTransations):
         
         if (k != len(transactionsSorted)):
             while(goNext):
-                #print('j: '+str(j)+' k: '+str(k)+" len transactionsSorted"+str(len(transactionsSorted)))
                 if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
                     n += 1
                     goNext = True
@@ -45,21 +44,15 @@ def checkExistingTransations(sourceTransations):
         result = fireflyIII.searchTransations(query)
 
         if len(result["data"]) != n:
-            #print("IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-            #print("IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
             query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
 
             result = fireflyIII.searchTransations(query)
 
             if len(result["data"]) != 1:
-                #print("IF IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-                #print("IF IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
-                #print(transaction)
                 for z in range(j, j+n):
                     transactionsNotExistend.update({i: transactionsSorted[z]})
                     i += 1
         j += n
-        #print("j: "+str(j)) 
     return transactionsNotExistend
 
 @app.route('/', methods=['POST', 'GET'])
@@ -68,6 +61,8 @@ def index():
 
         if not fireflyIII.checkAccessToken():
             return redirect(fireflyIII.startAuth())
+        
+        categories = fireflyIII.getCategories()
 
         filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
@@ -76,7 +71,6 @@ def index():
             previousSessionFilePath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileSession.csv")
             previousSessionFile.save(previousSessionFilePath)
 
-            #transactionsNotExistend = {}
             transactions = []
             i = 0
             csvFileSession = pandas.read_csv(previousSessionFilePath)
@@ -98,13 +92,26 @@ def index():
                 if not pandas.isna(lineSession[5]):
                     financialTransaction.setDescription(lineSession[5])
 
-                #transactionsNotExistend.update({i: financialTransaction})
+                sourceAccount = lineSession[3]
+                if pandas.isna(sourceAccount):
+                    sourceAccount = ""
+                sourceAccountsFirefly = fireflyIII.autocompleteAccounts(sourceAccount, "Revenue account")
+                if len(sourceAccountsFirefly) > 0:
+                    financialTransaction.setSourceAccountID(sourceAccountsFirefly[0].get('id'))
+                
+                destinationAccount = lineSession[4]
+                if pandas.isna(destinationAccount):
+                    destinationAccount = ""
+                destinationAccountsFirefly = fireflyIII.autocompleteAccounts(destinationAccount, "Expense account")
+                if len(destinationAccountsFirefly) > 0:
+                    financialTransaction.setDestinationAccountID(destinationAccountsFirefly[0].get('id'))
+
                 transactions.append(financialTransaction)
                 i += 1
             
             transactionsNotExistend = checkExistingTransations(transactions)
 
-            return render_template('list_transaction.html', transactions=transactionsNotExistend)
+            return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
         else:
             
             fileBank = request.files['bankFile']
@@ -127,51 +134,7 @@ def index():
 
             transactionsNotExistend = checkExistingTransations(transactions)
 
-            """ transactionsSorted = sorted(transactions, key=lambda x: (x.date, x.amount))
-
-            transactionsNotExistend = {}
-            i = 0
-            j = 0
-            #for j in range(len(transactionsSorted)):
-            while j < len(transactionsSorted):
-                query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-                
-                goNext = True
-                k = j + 1
-                n = 1
-                
-                if (k != len(transactionsSorted)):
-                    while(goNext):
-                        #print('j: '+str(j)+' k: '+str(k)+" len transactionsSorted"+str(len(transactionsSorted)))
-                        if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
-                            n += 1
-                            goNext = True
-                        else:
-                            goNext = False
-                        if (k != len(transactionsSorted) - 1):
-                            k += 1
-                
-                
-                result = fireflyIII.searchTransations(query)
-
-                if len(result["data"]) != n:
-                    #print("IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-                    #print("IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
-                    query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-
-                    result = fireflyIII.searchTransations(query)
-
-                    if len(result["data"]) != 1:
-                        #print("IF IF n: "+str(n)+"len result: "+str(len(result["data"])) )
-                        #print("IF IF query: "+query+" n: "+str(n)+" j: "+str(j)+" k: "+str(k))
-                        #print(transaction)
-                        for z in range(j, j+n):
-                            transactionsNotExistend.update({i: transactionsSorted[z]})
-                            i += 1
-                j += n
-                #print("j: "+str(j)) """
-
-            return render_template('list_transaction.html', transactions=transactionsNotExistend)
+            return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
     else:
         if not fireflyIII.checkAccessToken():
             return redirect(fireflyIII.startAuth())

@@ -28,9 +28,9 @@
     </datalist>
 
     <datalist id="categoryList">
-        <option value="Spese">
+        <!--<option value="Spese">
         <option value="Rimborso">
-        <option value="Entrate">
+        <option value="Entrate">-->
     </datalist>
 
     <table>
@@ -57,15 +57,15 @@
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" class="track-changeAccount">
-                            <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
+                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" idAccount="{{ transaction.source_account_id }}" {% if transaction.source_account_id is defined %} readonly {% endif %} class="track-changeAccount">
+                            {% if transaction.source_account_id is not defined %}<button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>{% endif %}
                         </div>
                         <span class="old-value">Controparte 1</span>
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" class="track-changeAccount">
-                            <button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>
+                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" idAccount="{{ transaction.destination_account_id }}" {% if transaction.destination_account_id is defined %} readonly {% endif %} class="track-changeAccount">
+                            {% if transaction.destination_account_id is not defined %}<button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>{% endif %}
                         </div>
                         <span class="old-value">Controparte 1</span>
                     </td>
@@ -75,7 +75,12 @@
                     </td>
                     <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}"></td>
                     <td>
-                        <input type="text" list="categoryList" value="Spese" class="track-change">
+                        <select class="track-change">
+                            <option value="">Category</option>
+                            {% for category in categories.get('data') %}
+                            <option value="{{ category.get('id') }}">{{ category.get('attributes').get('name') }}</option>
+                            {% endfor %}
+                        </select>
                         <span class="old-value">Spese</span>
                     </td>
                 </tr>

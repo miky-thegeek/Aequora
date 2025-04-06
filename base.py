@@ -15,18 +15,27 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
             datetime_card = lineCard[1].to_pydatetime()
             datetime_card = datetime_card.replace(hour=lineCard[2].hour, minute=lineCard[2].minute)
 
+            if lineCard[5] > 0:
+                transactionType = TransactionType.DEPOSIT
+                sourceAccount = descPartsCard[0]
+                destinationAccount = "Unicredit"
+            else:
+                transactionType = TransactionType.WITHDRAWAL
+                destinationAccount = descPartsCard[0]
+                sourceAccount = "Unicredit"
+
             if descPartsCard[0] == descPartsBank[3]:
 
                 #print(str(datetime_card)+" "+descPartsCard[0]+" "+descPartsCard[1])
                 #otherAccounts.add(descPartsCard[0])
 
                 transaction = FinancialTransaction(
-                    transaction_type=TransactionType.WITHDRAWAL,
+                    transaction_type=transactionType,
                     date=datetime_card,
                     currency_code="EUR",
                     amount=abs(lineCard[5]),
-                    source_account="Unicredit",
-                    destination_account=descPartsCard[0]
+                    source_account=sourceAccount,
+                    destination_account=destinationAccount
                 )
 
                 csvCard.drop(lineCard[0], inplace=True)
@@ -38,12 +47,12 @@ def getCardTransaction(csvCard, dateBank, descPartsBank):
                 #otherAccounts.add(descPartsCard[0])
 
                 transaction = FinancialTransaction(
-                    transaction_type=TransactionType.WITHDRAWAL,
+                    transaction_type=transactionType,
                     date=datetime_card,
                     currency_code="EUR",
                     amount=abs(lineCard[5]),
-                    source_account="Unicredit",
-                    destination_account=descPartsCard[0]
+                    source_account=sourceAccount,
+                    destination_account=destinationAccount
                 )
 
                 csvCard.drop(lineCard[0], inplace=True)

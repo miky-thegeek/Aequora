@@ -57,3 +57,19 @@ class FireflyIII:
         response = requests.request("GET", self.base_url+"api/v1/search/transactions?query="+urllib.parse.quote(query), headers=headers)
 
         return response.json()
+    
+    def autocompleteAccounts(self, query, type):
+        headers = {
+            'Accept': 'application/vnd.api+json',
+            'Authorization': 'Bearer '+self.client.token['access_token'] }
+        response = requests.request("GET", self.base_url+"api/v1/autocomplete/accounts?query="+urllib.parse.quote(query)+"&types="+urllib.parse.quote("Asset account,"+type), headers=headers)
+
+        return response.json()
+    
+    def getCategories(self):
+        headers = {
+            'Accept': 'application/vnd.api+json',
+            'Authorization': 'Bearer '+self.client.token['access_token'] }
+        response = requests.request("GET", self.base_url+"api/v1/categories?limit=500", headers=headers)
+
+        return response.json()
