@@ -6,6 +6,7 @@ from base import unicreditMain
 from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv
+import json
 
 import pandas
 from transaction import FinancialTransaction, TransactionType
@@ -16,7 +17,7 @@ app.config['UPLOAD_FOLDER'] = 'upload'
 
 fireflyIII = FireflyIII("http://192.168.1.30:8081/", os.environ["fireflyIII_id"], os.environ["fireflyIII_secret"])
 
-def checkExistingTransations(sourceTransations):
+def checkExistingTransations(sourceTransations, fireflyAssetId):
     transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
 
     transactionsNotExistend = {}
@@ -24,7 +25,7 @@ def checkExistingTransations(sourceTransations):
     j = 0
 
     while j < len(transactionsSorted):
-        query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+        query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
         
         goNext = True
         k = j + 1
@@ -44,7 +45,7 @@ def checkExistingTransations(sourceTransations):
         result = fireflyIII.searchTransations(query)
 
         if len(result["data"]) != n:
-            query = "amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+            query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
 
             result = fireflyIII.searchTransations(query)
 
@@ -54,6 +55,22 @@ def checkExistingTransations(sourceTransations):
                     i += 1
         j += n
     return transactionsNotExistend
+
+def getMostUsedCategoryID(accountTransaction):
+
+    categories = {}
+    if "data" in accountTransaction:
+        for singleData in accountTransaction.get('data'):
+            for transaction in singleData.get('attributes').get('transactions'):
+                category_id = transaction.get('category_id')
+                if category_id in categories:
+                    categories.update({category_id: categories[category_id]+1})
+                else:
+                    categories.update({category_id: 1})
+    if len(categories) > 0:
+        return max(categories, key=categories.get)
+    else:
+        return -1
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -106,10 +123,21 @@ def index():
                 if len(destinationAccountsFirefly) > 0:
                     financialTransaction.setDestinationAccountID(destinationAccountsFirefly[0].get('id'))
 
+                if pandas.isna(lineSession[7]):
+                    print("isna")
+                    accountCounterpartyID = financialTransaction.getAccountCounterparty("Unicredit").get('id')
+                    if accountCounterpartyID is not None:
+                        accountTransactions = fireflyIII.getTransactionsOfAccount(accountCounterpartyID)
+                        financialTransaction.setCategoryID(getMostUsedCategoryID(accountTransactions))
+                else:
+                    financialTransaction.setCategoryID(lineSession[7])
+
+
+
                 transactions.append(financialTransaction)
                 i += 1
             
-            transactionsNotExistend = checkExistingTransations(transactions)
+            transactionsNotExistend = checkExistingTransations(transactions, "1")
 
             return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
         else:
@@ -132,7 +160,7 @@ def index():
             os.remove(fileCardPath)
             os.remove(filePayPalPath)
 
-            transactionsNotExistend = checkExistingTransations(transactions)
+            transactionsNotExistend = checkExistingTransations(transactions, "1")
 
             return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
     else:
@@ -167,13 +195,64 @@ def save():
     fileOutputPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileTransactions.csv")
     
     with open(fileOutputPath, 'w', newline='') as csvfile:
-        fieldnames = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'description', 'amount']
+        fieldnames = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'description', 'amount', 'category', 'sourceAccountId', 'destinationAccountId']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)
 
     #return str(grouped_data)
     return send_file(fileOutputPath, as_attachment=True)
+
+@app.route('/insert', methods=['POST'])
+def insert():
+
+    # Dizionario per raggruppare i dati
+    grouped_data = defaultdict(dict)
+
+    # Raggruppamento dei dati
+    for key, value in request.form.items():
+        prefix, suffix = key.rsplit('_', 1)
+        grouped_data[suffix][prefix] = value
+
+    csv_rows = []
+    results = []
+    for key, value in grouped_data.items():
+        csv_rows.append(value)
+
+        fireflyTransaction = {"type": value.get('transactionType'), 'date': value.get('date'), 
+                              "amount": value.get('amount'), "description": value.get('description'), 
+                              "currency_code": "EUR", "category_id": value.get('category')}
+
+
+        sourceAccountId = value.get('sourceAccountId')
+        if sourceAccountId == "None":
+            sourceAccountsFirefly = fireflyIII.autocompleteAccounts(value.get('sourceAccount'), "Revenue account")
+            if len(sourceAccountsFirefly) > 0:
+                fireflyTransaction['source_id'] = sourceAccountsFirefly[0].get('id')
+            else:
+                fireflyTransaction['source_name'] = value.get('sourceAccount')
+        else:
+            fireflyTransaction['source_id'] = sourceAccountId
+        
+        
+        if value.get('destinationAccountId') == "None":
+            destinationAccountsFirefly = fireflyIII.autocompleteAccounts(value.get('destinationAccount'), "Expense account")
+            if len(destinationAccountsFirefly) > 0:
+                fireflyTransaction['destination_id'] = destinationAccountsFirefly[0].get('id')
+            else:
+                fireflyTransaction['destination_name'] = value.get('destinationAccount')
+        else:
+            fireflyTransaction['destination_id'] = value.get('destinationAccountId')
+        #print(value)
+
+        data = {"error_if_duplicate_hash": False, "apply_rules": True, "fire_webhooks": True, "transactions": [fireflyTransaction]}
+
+        result = fireflyIII.insertTransactions(data)
+        print(result)
+        results.append(result)
+        #dataJSON = json.dumps(data)
+
+    return json.dumps(results)
 
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'

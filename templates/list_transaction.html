@@ -19,6 +19,7 @@
 <body>
     <h1>Importazione delle Transazioni</h1>
     <input type="button" value="Salva" onclick="submitForm()" style="width: 100px;margin-top: 27px;">
+    <input type="button" value="Trasferisci" onclick="insert()" style="width: 100px;margin-top: 27px;">
     <datalist id="accountList">
         <option value="Controparte 1">
         <option value="Controparte 2">
@@ -57,15 +58,17 @@
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" idAccount="{{ transaction.source_account_id }}" {% if transaction.source_account_id is defined %} readonly {% endif %} class="track-changeAccount">
-                            {% if transaction.source_account_id is not defined %}<button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>{% endif %}
+                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" idAccount="{{ transaction.source_account_id }}" {% if transaction.source_account_id %} readonly {% endif %} class="track-changeAccount">
+                            <input type="hidden" name="sourceAccountId_{{ key }}" value="{{ transaction.source_account_id }}">
+                            {% if not transaction.source_account_id %}<button class="editAccount" onclick="editAccount(this)">✎</button>{% endif %}
                         </div>
                         <span class="old-value">Controparte 1</span>
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" idAccount="{{ transaction.destination_account_id }}" {% if transaction.destination_account_id is defined %} readonly {% endif %} class="track-changeAccount">
-                            {% if transaction.destination_account_id is not defined %}<button class="{{ transaction.getAccountCounterparty('Unicredit') }}" onclick="editAccount(this)">✎</button>{% endif %}
+                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" idAccount="{{ transaction.destination_account_id }}" {% if transaction.destination_account_id %} readonly {% endif %} class="track-changeAccount">
+                            <input type="hidden" name="destinationAccountId_{{ key }}" value="{{ transaction.destination_account_id }}">
+                            {% if not transaction.destination_account_id %}<button class="editAccount" onclick="editAccount(this)">✎</button>{% endif %}
                         </div>
                         <span class="old-value">Controparte 1</span>
                     </td>
@@ -75,10 +78,10 @@
                     </td>
                     <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}"></td>
                     <td>
-                        <select class="track-change">
+                        <select name="category_{{ key }}" class="track-change-select">
                             <option value="">Category</option>
                             {% for category in categories.get('data') %}
-                            <option value="{{ category.get('id') }}">{{ category.get('attributes').get('name') }}</option>
+                            <option value="{{ category.get('id') }}" {% if category.get('id') == transaction.category_id %} selected {% endif %}>{{ category.get('attributes').get('name') }}</option>
                             {% endfor %}
                         </select>
                         <span class="old-value">Spese</span>
@@ -133,6 +136,29 @@
             });
         }
 
+        function insert() {
+            $.ajax({
+                type: "POST",
+                url: "/insert",
+                data: $( "#transactionsForm" ).serialize(),
+                //dataType: "html",
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(data, textStatus, jqXHR) {
+                    //console.log(data);
+                    //console.log(textStatus);
+                    //console.log(jqXHR);
+
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.log(jqXHR);
+                    console.log(errorThrown);
+                    console.log(textStatus);
+                }
+            });
+        }
+
         function trovaProssimoSpan(elemento) {
         let prossimoElemento = elemento.nextElementSibling;
 
@@ -175,8 +201,8 @@
         document.querySelectorAll('.track-changeAccount').forEach((input) => {
             let buttonEdit = input.nextElementSibling;
             let oldValueSpan = trovaProssimoSpan(input);
-            console.log(input)
-            console.log(oldValueSpan)
+            //console.log(input)
+            //console.log(oldValueSpan)
             input.addEventListener('focus', function() {
                 if(oldValueSpan.style.display == 'none' || oldValueSpan.style.display == '') {
                     this.dataset.oldValue = this.value;
@@ -200,8 +226,8 @@
         document.querySelectorAll('.track-change').forEach((input) => {
             //let oldValueSpan = input.nextElementSibling;
             let oldValueSpan = trovaProssimoSpan(input);
-            console.log(input)
-            console.log(oldValueSpan)
+            //console.log(input)
+            //console.log(oldValueSpan)
             input.addEventListener('focus', function() {
                 if(oldValueSpan.style.display == 'none' || oldValueSpan.style.display == '') {
                     this.dataset.oldValue = this.value;
@@ -211,6 +237,29 @@
             input.addEventListener('change', function() {
                 const oldValue = this.dataset.oldValue;
                 const newValue = this.value;
+                if (oldValue !== newValue) {
+                    oldValueSpan.textContent = oldValue;
+                    oldValueSpan.style.display = 'block';
+                } else {
+                    oldValueSpan.style.display = 'none';
+                }
+            });
+        });
+
+        document.querySelectorAll('.track-change-select').forEach((input) => {
+            //let oldValueSpan = input.nextElementSibling;
+            let oldValueSpan = trovaProssimoSpan(input);
+            //console.log(input)
+            //console.log(oldValueSpan)
+            input.addEventListener('focus', function() {
+                if(oldValueSpan.style.display == 'none' || oldValueSpan.style.display == '') {
+                    this.dataset.oldValue = this.options[this.selectedIndex].text;
+                }
+            });
+
+            input.addEventListener('change', function() {
+                const oldValue = this.dataset.oldValue;
+                const newValue = this.options[this.selectedIndex].text;
                 if (oldValue !== newValue) {
                     oldValueSpan.textContent = oldValue;
                     oldValueSpan.style.display = 'block';

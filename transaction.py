@@ -18,6 +18,8 @@ class FinancialTransaction:
         self.source_account = source_account
         self.destination_account = destination_account
         #self.category = category
+        self.destination_account_id = None
+        self.source_account_id = None
 
     def _validate_transaction_type(self, transaction_type):
         if isinstance(transaction_type, TransactionType):
@@ -39,14 +41,19 @@ class FinancialTransaction:
     def setDestinationAccountID(self, destinationAccountID):
         self.destination_account_id = destinationAccountID
 
+    def setCategoryID(self, categoryID):
+        self.category_id = str(int(float(categoryID)))
+
     def getHTMLDate(self):
         return self.date.strftime('%Y-%m-%dT%H:%M')
     
     def getAccountCounterparty(self, bankAccount):
         if bankAccount == self.source_account:
-            return self.destination_account
+            return {"id": self.destination_account_id if self.destination_account_id is not None else "", "name": self.destination_account}
+            #return self.destination_account
         else:
-            return self.source_account
+            return {"id": self.source_account_id if self.source_account_id is not None else "", "name": self.source_account}
+            #return self.source_account
 
     def __str__(self):
         return (

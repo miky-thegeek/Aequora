@@ -50,10 +50,14 @@ class FireflyIII:
         else:
             return False
         
-    def searchTransations(self, query):
+    def searchTransations(self, query, accessToken = ""):
+        if accessToken != "":
+            access_token = accessToken
+        else:
+            access_token = self.client.token['access_token']
         headers = {
             'Accept': 'application/vnd.api+json',
-            'Authorization': 'Bearer '+self.client.token['access_token'] }
+            'Authorization': 'Bearer '+access_token }
         response = requests.request("GET", self.base_url+"api/v1/search/transactions?query="+urllib.parse.quote(query), headers=headers)
 
         return response.json()
@@ -71,5 +75,21 @@ class FireflyIII:
             'Accept': 'application/vnd.api+json',
             'Authorization': 'Bearer '+self.client.token['access_token'] }
         response = requests.request("GET", self.base_url+"api/v1/categories?limit=500", headers=headers)
+
+        return response.json()
+    
+    def getTransactionsOfAccount(self, accountID):
+        headers = {
+            'Accept': 'application/vnd.api+json',
+            'Authorization': 'Bearer '+self.client.token['access_token'] }
+        response = requests.request("GET", self.base_url+"api/v1/accounts/"+accountID+"/transactions", headers=headers)
+
+        return response.json()
+    
+    def insertTransactions(self, dictonaryData):
+        headers = {
+            'Accept': 'application/vnd.api+json',
+            'Authorization': 'Bearer '+self.client.token['access_token'] }
+        response = requests.request("POST", self.base_url+"api/v1/transactions", json=dictonaryData, headers=headers)
 
         return response.json()
