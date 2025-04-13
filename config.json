@@ -1,0 +1,38 @@
+{
+    "Unicredit": {
+        "checking_account": {
+            "pandas_read_csv": {
+                "decimal":",", "sep":";", "parse_dates":[0, 1], "dayfirst":true
+            },
+            "normalizationFunction": "normalizeBank",
+            "fields": {
+                "amount": 4,
+                "date": 2,
+                "destination": 3
+            }
+        },
+        "debit_card": {
+            "pandas_read_csv": {
+                "decimal":",", "sep":";", "parse_dates":[0, 1, 2], "dayfirst":true, 
+                "date_format":{"Data Registrazione": "%d/%m/%Y", "Ora operazione": "%H:%M", "Data valuta": "%d/%m/%Y"}
+            },
+            "fields": {
+                "amount": 5,
+                "date": 1,
+                "time": 2,
+                "destination": 4
+            }
+        }
+    },
+    "PayPal": {
+        "pandas_read_csv": {
+            "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
+        },
+        "fields": {
+            "amount": 6,
+            "date": 1,
+            "time": 2,
+            "destination": 12
+        }
+    }
+}

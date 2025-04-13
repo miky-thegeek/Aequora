@@ -31,3 +31,6 @@ class Account:
     
     def setAssociation(self, idAssociatedAccount):
         self.id_associated_account = idAssociatedAccount
+    
+    def setBank(self, bank):
+        self.bank = bank

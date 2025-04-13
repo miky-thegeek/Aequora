@@ -203,13 +203,10 @@ def index_v2():
 
 @app.route('/new_session', methods=['POST'])
 def new_session():
-    accounts = []
-    for key, value in request.form.items():
-        print("key: "+key+" value: "+str(value))
+    accounts = {}
 
     filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     for key, value in request.files.items():
-        print("key: "+key+" value: "+str(value))
         fileAccount = request.files[key]
         fileAccountPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_"+key+".csv")
         fileAccount.save(fileAccountPath)
@@ -222,9 +219,9 @@ def new_session():
             print(idAssociatedAccount)
             account.setAssociation(idAssociatedAccount)
         
-        accounts.append(account)
+        accounts.update({key: account})
 
-    relations = genera_relazioni_dinamiche(accounts)
+    relations = genera_relazioni_dinamiche(list(accounts.values()))
 
     print(relations)
 

@@ -46,7 +46,7 @@
             <div class="file-upload-group">
                 <label>Carte Prepagate:</label>
                 <div id="prepaidCardContainer"></div>
-                <button type="button" onclick="addUploadField('prepaidCard')">Aggiungi Carta prepaidCard</button>
+                <button type="button" onclick="addUploadField('prepaidCard')">Aggiungi Carta Prepagata</button>
             </div>
 
             <button type="submit">Avvia Sessione</button>
@@ -64,12 +64,26 @@
     </div>
 
     <script>
+        const bancaOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'Credem'];
         let checkingAccountCount = 0;
 
         function showForm(formId) {
             document.getElementById('newSessionForm').classList.add('hidden');
             document.getElementById('continueSessionForm').classList.add('hidden');
             document.getElementById(formId).classList.remove('hidden');
+        }
+
+        function createBancaSelect(name) {
+            const select = document.createElement('select');
+            select.name = name;
+            select.required = true;
+            bancaOptions.forEach(banca => {
+                const option = document.createElement('option');
+                option.value = banca;
+                option.textContent = banca;
+                select.appendChild(option);
+            });
+            return select;
         }
 
         function addUploadField(type) {
@@ -80,6 +94,10 @@
             const id = `${type}_${index}`;
 
             let html = `<label>${capitalize(type)} ${index}:</label><input type="file" name="${id}" accept=".csv" required>`;
+
+            if (type === 'checkingAccount' || type === 'prepaidCard') {
+                html += `<br><label>Nome Banca:</label> `;
+            }
 
             if (type === 'debitCard' && checkingAccountCount > 0) {
                 const selectId = `${type}_association_${index}`;
@@ -107,6 +125,12 @@
             };
 
             div.innerHTML = html;
+
+            if (type === 'checkingAccount' || type === 'prepaidCard') {
+                const bancaSelect = createBancaSelect(`${id}_banca`);
+                div.appendChild(bancaSelect);
+            }
+
             div.appendChild(removeBtn);
             container.appendChild(div);
 
