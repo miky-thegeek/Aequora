@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Sessioni</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .hidden { display: none; }
+        .form-container { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        button { margin: 5px 0; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .file-upload-group { margin-bottom: 15px; }
+        .file-upload-subgroup { margin-left: 20px; margin-top: 10px; border-left: 3px solid #ccc; padding-left: 10px; position: relative; }
+        .remove-button { position: absolute; top: 0; right: 0; background-color: #f44336; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .remove-button:hover { background-color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <h1>Gestione delle Sessioni</h1>
+
+    <button onclick="showForm('newSessionForm')">Inizia una nuova sessione</button>
+    <button onclick="showForm('continueSessionForm')">Continua una sessione precedente</button>
+
+    <div id="newSessionForm" class="form-container hidden">
+        <h2>Carica i file per una nuova sessione</h2>
+        <form id="newSessionFormContent" method = "POST"  enctype = "multipart/form-data" action="/new_session">
+            <div class="file-upload-group">
+                <label>Conti Correnti:</label>
+                <div id="checkingAccountContainer"></div>
+                <button type="button" onclick="addUploadField('checkingAccount')">Aggiungi Conto Corrente</button>
+            </div>
+
+            <div class="file-upload-group">
+                <label>Carte di Debito:</label>
+                <div id="debitCardContainer"></div>
+                <button type="button" onclick="addUploadField('debitCard')">Aggiungi Carta di Debito</button>
+            </div>
+
+            <div class="file-upload-group">
+                <label>Conti PayPal:</label>
+                <div id="paypalContainer"></div>
+                <button type="button" onclick="addUploadField('paypal')">Aggiungi Conto PayPal</button>
+            </div>
+
+            <div class="file-upload-group">
+                <label>Carte Prepagate:</label>
+                <div id="prepaidCardContainer"></div>
+                <button type="button" onclick="addUploadField('prepaidCard')">Aggiungi Carta prepaidCard</button>
+            </div>
+
+            <button type="submit">Avvia Sessione</button>
+        </form>
+    </div>
+
+    <div id="continueSessionForm" class="form-container hidden">
+        <h2>Carica il file della sessione precedente</h2>
+        <form>
+            <label for="previousSessionFile">File CSV della sessione precedente:</label>
+            <input type="file" id="previousSessionFile" accept=".csv" required><br><br>
+
+            <button type="submit">Continua Sessione</button>
+        </form>
+    </div>
+
+    <script>
+        let checkingAccountCount = 0;
+
+        function showForm(formId) {
+            document.getElementById('newSessionForm').classList.add('hidden');
+            document.getElementById('continueSessionForm').classList.add('hidden');
+            document.getElementById(formId).classList.remove('hidden');
+        }
+
+        function addUploadField(type) {
+            const container = document.getElementById(`${type}Container`);
+            const index = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = 'file-upload-subgroup';
+            const id = `${type}_${index}`;
+
+            let html = `<label>${capitalize(type)} ${index}:</label><input type="file" name="${id}" accept=".csv" required>`;
+
+            if (type === 'debitCard' && checkingAccountCount > 0) {
+                const selectId = `${type}_association_${index}`;
+                html += `<br><label>Associa a:</label> <select name="${selectId}" class="checkingAccountSelect">`;
+                for (let i = 1; i <= checkingAccountCount; i++) {
+                    html += `<option value="checkingAccount_${i}">Conto Corrente ${i}</option>`;
+                }
+                html += '</select>';
+            }
+
+            if (type === 'checkingAccount') {
+                checkingAccountCount++;
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Rimuovi';
+            removeBtn.className = 'remove-button';
+            removeBtn.type = 'button';
+            removeBtn.onclick = () => {
+                if (type === 'checkingAccount') {
+                    checkingAccountCount--;
+                    updateAllDebitoSelects();
+                }
+                div.remove();
+            };
+
+            div.innerHTML = html;
+            div.appendChild(removeBtn);
+            container.appendChild(div);
+
+            if (type === 'checkingAccount') {
+                updateAllDebitoSelects();
+            }
+        }
+
+        function updateAllDebitoSelects() {
+            const selects = document.querySelectorAll('.checkingAccountSelect');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '';
+                for (let i = 1; i <= checkingAccountCount; i++) {
+                    const option = document.createElement('option');
+                    option.value = `checkingAccount_${i}`;
+                    option.textContent = `Conto Corrente ${i}`;
+                    select.appendChild(option);
+                }
+                if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
+</body>
+</html>

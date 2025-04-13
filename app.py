@@ -10,6 +10,7 @@ import json
 
 import pandas
 from transaction import FinancialTransaction, TransactionType
+from account import Account, AccountType
 from datetime import datetime
 
 app = Flask(__name__)
@@ -71,6 +72,34 @@ def getMostUsedCategoryID(accountTransaction):
         return max(categories, key=categories.get)
     else:
         return -1
+
+def genera_relazioni_dinamiche(accounts):
+    relazioni = []
+
+    for a1 in accounts:
+        for a2 in accounts:
+            if a1.id == a2.id:
+                continue
+
+            t1 = a1.account_type
+            t2 = a2.account_type
+
+            # Regola 1: debito → solo con conto associato
+            if t1 == AccountType.DEBIT_CARD and t2 == AccountType.CHECKING_ACCOUNT and a1.id_associated_account == a2.id:
+                relazioni.append((a1.id, a2.id))
+
+            # Regola 2: paypal → conto o prepagata
+            elif t1 == AccountType.PAYPAL and t2 in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
+                relazioni.append((a1.id, a2.id))
+
+            # Regola 3: prepagata → conto
+            elif t1 == AccountType.PREPAID_CARD and t2 == AccountType.CHECKING_ACCOUNT:
+                relazioni.append((a1.id, a2.id))
+
+            # Altri casi personalizzabili qui...
+    
+    return relazioni
+
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -167,7 +196,40 @@ def index():
         if not fireflyIII.checkAccessToken():
             return redirect(fireflyIII.startAuth())
         return render_template('session_manager.html')
-    
+
+@app.route('/index_v2', methods=['GET'])
+def index_v2():
+    return render_template('session_manager_v2.html')
+
+@app.route('/new_session', methods=['POST'])
+def new_session():
+    accounts = []
+    for key, value in request.form.items():
+        print("key: "+key+" value: "+str(value))
+
+    filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    for key, value in request.files.items():
+        print("key: "+key+" value: "+str(value))
+        fileAccount = request.files[key]
+        fileAccountPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_"+key+".csv")
+        fileAccount.save(fileAccountPath)
+        account = Account(key, pandas.read_csv(fileAccountPath))
+        os.remove(fileAccountPath)
+
+        if account.account_type == AccountType.DEBIT_CARD:
+            idParts = key.split("_")
+            idAssociatedAccount = request.form["debitCard_association_"+idParts[1]]
+            print(idAssociatedAccount)
+            account.setAssociation(idAssociatedAccount)
+        
+        accounts.append(account)
+
+    relations = genera_relazioni_dinamiche(accounts)
+
+    print(relations)
+
+    return ""
+
 @app.route('/oauth2_callback', methods=['GET'])
 def oauth2_callback():
 
