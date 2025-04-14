@@ -8,9 +8,8 @@ class AccountType(Enum):
 
 class Account:
 
-    def __init__(self, id, dataframe):
+    def __init__(self, id):
         self.id = id
-        self.dataframe = dataframe
         self.account_type = self._calculate_account_type(id)
         
     
@@ -34,3 +33,6 @@ class Account:
     
     def setBank(self, bank):
         self.bank = bank
+    
+    def setDataframe(self, dataframe):
+        self.dataframe = dataframe

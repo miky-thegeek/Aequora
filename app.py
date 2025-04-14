@@ -12,6 +12,7 @@ import pandas
 from transaction import FinancialTransaction, TransactionType
 from account import Account, AccountType
 from datetime import datetime
+import normalization
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'upload'
@@ -73,7 +74,7 @@ def getMostUsedCategoryID(accountTransaction):
     else:
         return -1
 
-def genera_relazioni_dinamiche(accounts):
+def generate_dynamic_relationship(accounts):
     relazioni = []
 
     for a1 in accounts:
@@ -205,23 +206,55 @@ def index_v2():
 def new_session():
     accounts = {}
 
+    config = {}
+    with open('config.json', 'r') as file:
+        config = json.load(file)
+
     filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     for key, value in request.files.items():
         fileAccount = request.files[key]
         fileAccountPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_"+key+".csv")
         fileAccount.save(fileAccountPath)
-        account = Account(key, pandas.read_csv(fileAccountPath))
-        os.remove(fileAccountPath)
+        account = Account(key)
 
-        if account.account_type == AccountType.DEBIT_CARD:
+        normalizationFunction = None
+        pandas_read_csv_params = {"filepath_or_buffer": fileAccountPath}
+        if account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
+            bank = request.form[key+"_bank"]
+            account.setBank(bank)
+            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_csv'))
+            if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
+                normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
+        #pandas.read_csv(fileAccountPath)
+        elif account.account_type == AccountType.DEBIT_CARD:
             idParts = key.split("_")
             idAssociatedAccount = request.form["debitCard_association_"+idParts[1]]
             print(idAssociatedAccount)
             account.setAssociation(idAssociatedAccount)
+
+            bank = accounts.get(idAssociatedAccount).bank
+            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_csv'))
+
+            if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
+                normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
+        elif account.account_type == AccountType.PAYPAL:
+            pandas_read_csv_params.update(config.get("PayPal").get('pandas_read_csv'))
+
+            if config.get('PayPal').get('normalizationFunction'):
+                normalizationFunction = getattr(normalization, config.get('PayPal').get('normalizationFunction'))
+
+        dataframeCSV = pandas.read_csv(**pandas_read_csv_params)
+
+        if normalizationFunction:
+            dataframeCSV = normalizationFunction(dataframeCSV)
+        
+        account.setDataframe(dataframeCSV)
+
+        os.remove(fileAccountPath)
         
         accounts.update({key: account})
 
-    relations = genera_relazioni_dinamiche(list(accounts.values()))
+    relations = generate_dynamic_relationship(list(accounts.values()))
 
     print(relations)
 
