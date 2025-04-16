@@ -28,11 +28,13 @@
         "pandas_read_csv": {
             "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
         },
+        "normalizationFunction": "normalizePayPal",
         "fields": {
             "amount": 6,
             "date": 1,
             "time": 2,
-            "destination": 12
+            "destination": 12,
+            "source": 13
         }
     }
 }

@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 from base import unicreditMain
+from base_v2 import compare_accounts
 from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv
@@ -87,15 +88,15 @@ def generate_dynamic_relationship(accounts):
 
             # Regola 1: debito → solo con conto associato
             if t1 == AccountType.DEBIT_CARD and t2 == AccountType.CHECKING_ACCOUNT and a1.id_associated_account == a2.id:
-                relazioni.append((a1.id, a2.id))
+                relazioni.append((a1.id, a2.id, 0))
 
             # Regola 2: paypal → conto o prepagata
             elif t1 == AccountType.PAYPAL and t2 in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
-                relazioni.append((a1.id, a2.id))
+                relazioni.append((a1.id, a2.id, 3))
 
             # Regola 3: prepagata → conto
             elif t1 == AccountType.PREPAID_CARD and t2 == AccountType.CHECKING_ACCOUNT:
-                relazioni.append((a1.id, a2.id))
+                relazioni.append((a1.id, a2.id, 1))
 
             # Altri casi personalizzabili qui...
     
@@ -200,10 +201,12 @@ def index():
 
 @app.route('/index_v2', methods=['GET'])
 def index_v2():
+
     return render_template('session_manager_v2.html')
 
 @app.route('/new_session', methods=['POST'])
 def new_session():
+
     accounts = {}
 
     config = {}
@@ -211,6 +214,7 @@ def new_session():
         config = json.load(file)
 
     filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
     for key, value in request.files.items():
         fileAccount = request.files[key]
         fileAccountPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_"+key+".csv")
@@ -229,7 +233,6 @@ def new_session():
         elif account.account_type == AccountType.DEBIT_CARD:
             idParts = key.split("_")
             idAssociatedAccount = request.form["debitCard_association_"+idParts[1]]
-            print(idAssociatedAccount)
             account.setAssociation(idAssociatedAccount)
 
             bank = accounts.get(idAssociatedAccount).bank
@@ -246,7 +249,7 @@ def new_session():
         dataframeCSV = pandas.read_csv(**pandas_read_csv_params)
 
         if normalizationFunction:
-            dataframeCSV = normalizationFunction(dataframeCSV)
+            normalizationFunction(dataframeCSV)
         
         account.setDataframe(dataframeCSV)
 
@@ -258,7 +261,12 @@ def new_session():
 
     print(relations)
 
-    return ""
+    transactions = compare_accounts(accounts, relations, config)
+
+    for account in accounts.values():
+        account.dataframe.to_csv(account.id+".csv", sep=',', encoding='utf-8', index=False, header=True)
+
+    return render_template('list_transaction.html', transactions=transactions, categories={"data": []})
 
 @app.route('/oauth2_callback', methods=['GET'])
 def oauth2_callback():
