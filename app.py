@@ -3,7 +3,6 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 from base import unicreditMain
-from base_v2 import compare_accounts
 from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv
@@ -14,6 +13,7 @@ from transaction import FinancialTransaction, TransactionType
 from account import Account, AccountType
 from datetime import datetime
 import normalization
+import base_v2
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'upload'
@@ -250,6 +250,9 @@ def new_session():
 
         if normalizationFunction:
             normalizationFunction(dataframeCSV)
+
+        for transaction in dataframeCSV.itertuples():
+            dataframeCSV.at[transaction[0], "Found"] = False
         
         account.setDataframe(dataframeCSV)
 
@@ -261,10 +264,31 @@ def new_session():
 
     print(relations)
 
-    transactions = compare_accounts(accounts, relations, config)
+    transactions = base_v2.compare_accounts(accounts, relations, config)
 
     for account in accounts.values():
-        account.dataframe.to_csv(account.id+".csv", sep=',', encoding='utf-8', index=False, header=True)
+        if account.account_type ==  AccountType.CHECKING_ACCOUNT:
+            elaborate_single_account = getattr(base_v2, "elaborate_"+AccountType.CHECKING_ACCOUNT.value+"_"+account.bank.lower())
+
+            list_transactions = elaborate_single_account(account, config)
+
+            index = list(transactions.keys())[-1] + 1
+            for transaction in list_transactions:
+                transactions.update({index: transaction})
+                index += 1
+        elif account.account_type ==  AccountType.PAYPAL:
+            elaborate_single_account = getattr(base_v2, "elaborate_"+AccountType.PAYPAL.value)
+
+            list_transactions = elaborate_single_account(account, config)
+
+            index = list(transactions.keys())[-1] + 1
+            for transaction in list_transactions:
+                transactions.update({index: transaction})
+                index += 1
+
+
+    for account in accounts.values():
+        account.dataframe.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], account.id+".csv"), sep=',', encoding='utf-8', index=False, header=True)
 
     return render_template('list_transaction.html', transactions=transactions, categories={"data": []})
 

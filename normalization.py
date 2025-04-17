@@ -1,11 +1,15 @@
 from datetime import timedelta
+import pandas
 def normalizeBank(csvBank):
     for lineBank in csvBank.itertuples():
         csvBank.at[lineBank[0], 'Importo (EUR)'] = float(lineBank[4].replace('.', '').replace(',', '.'))
 
 def normalizePayPal(csvPayPal):
-    pagamenti = csvPayPal[csvPayPal['Descrizione'].str.contains('Pagamento|Rimborso')]
+    #pagamenti = csvPayPal[csvPayPal['Descrizione'].str.contains('Pagamento|Rimborso')]
+    pagamenti = csvPayPal.copy()
     addebiti = csvPayPal[csvPayPal['Descrizione'].str.contains('Bonifico|Versamento generico con carta|Pagamento con credito acquirenti PayPal|Trasferimento avviato dall\'utente|Prelievo')]
+    for index, pagamento in addebiti.iterrows():
+        pagamenti.drop(index, inplace=True)
 
     indexes_to_drop = []
     # Rimuovere gli addebiti corrispondenti ai pagamenti
@@ -23,7 +27,12 @@ def normalizePayPal(csvPayPal):
         if len(addebito_match.to_list()) > 0:
             for index_addebiti in addebito_match.to_list():
                 bank = csvPayPal.iat[index_addebiti, 12]
-                csvPayPal.iat[index, 12] = bank
+                if pandas.isna(bank):
+                    csvPayPal.iat[index, 12] = "PayPal"
+                else:
+                    csvPayPal.iat[index, 12] = bank
+        else:
+            csvPayPal.iat[index, 12] = "PayPal"
         indexes_to_drop.extend(addebito_match.to_list())
 
         # Se esiste una corrispondenza, rimuoverla

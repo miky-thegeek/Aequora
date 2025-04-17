@@ -29,117 +29,319 @@ def compare_accounts(accounts, relationships, config):
 
         indexesToDrop_a1 = []
         indexesToDrop_a2 = []
-        for transation_a1 in a1.dataframe.itertuples():
+        for transaction_a1 in a1.dataframe.itertuples():
             found = False
-            amount_a1 = transation_a1[fields_a1.get('amount')]
-            date_a1 = transation_a1[fields_a1.get('date')]
-            destination_a1 = transation_a1[fields_a1.get('destination')]
+            amount_a1 = transaction_a1[fields_a1.get('amount')]
+            date_a1 = transaction_a1[fields_a1.get('date')]
+            destination_a1 = transaction_a1[fields_a1.get('destination')]
             if fields_a1.get('time'):
-                time_a1 = transation_a1[fields_a1.get('time')]
+                time_a1 = transaction_a1[fields_a1.get('time')]
             if fields_a1.get('source'):
-                source_a1 = transation_a1[fields_a1.get('source')]
+                source_a1 = transaction_a1[fields_a1.get('source')]
 
-            for transation_a2 in a2.dataframe.itertuples():
-                amount_a2 = transation_a2[fields_a2.get('amount')]
-                date_a2 = transation_a2[fields_a2.get('date')]
-                destination_a2 = transation_a2[fields_a2.get('destination')]
-                if fields_a2.get('time'):
-                    time_a2 = transation_a2[fields_a2.get('time')]
-                if fields_a2.get('source'):
-                    source_a2 = transation_a2[fields_a2.get('source')]
+            for transaction_a2 in a2.dataframe.itertuples():
+                if transaction_a2[a2.dataframe.columns.get_loc("Found")+1] == False:
+                    amount_a2 = transaction_a2[fields_a2.get('amount')]
+                    date_a2 = transaction_a2[fields_a2.get('date')]
+                    destination_a2 = transaction_a2[fields_a2.get('destination')]
+                    if fields_a2.get('time'):
+                        time_a2 = transaction_a2[fields_a2.get('time')]
+                    if fields_a2.get('source'):
+                        source_a2 = transaction_a2[fields_a2.get('source')]
 
-                for daysNumber in range(relationship[2]+1):
-                    if abs(amount_a1) == abs(amount_a2) and compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber) == date_a2.to_pydatetime():
-                        if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
-                            descPartsA1 = re.split(r'\s{2,}', destination_a1)
-                            descPartsA2 = re.split(r'\s{2,}', destination_a2)
+                    for daysNumber in range(relationship[2]+1):
+                        if abs(amount_a1) == abs(amount_a2) and compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber) == date_a2.to_pydatetime():
+                            if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
+                                descPartsA1 = re.split(r'\s{2,}', destination_a1)
+                                descPartsA2 = re.split(r'\s{2,}', destination_a2)
 
-                            if (descPartsA1[0] == descPartsA2[3]) or (descPartsA1[0] == descPartsA2[4]):
-                                if amount_a1 > 0:
-                                    transactionType = TransactionType.DEPOSIT
-                                    sourceAccount = descPartsA1[0]
-                                    destinationAccount = bank_a1
-                                else:
-                                    transactionType = TransactionType.WITHDRAWAL
-                                    destinationAccount = descPartsA1[0]
-                                    sourceAccount = bank_a1
+                                if (descPartsA1[0] == descPartsA2[3]) or (descPartsA1[0] == descPartsA2[4]):
+                                    if amount_a1 > 0:
+                                        transactionType = TransactionType.DEPOSIT
+                                        sourceAccount = descPartsA1[0]
+                                        destinationAccount = bank_a1
+                                    else:
+                                        transactionType = TransactionType.WITHDRAWAL
+                                        destinationAccount = descPartsA1[0]
+                                        sourceAccount = bank_a1
 
-                                if time_a1:
-                                    date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                                elif time_a2:
-                                    date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
-                                
-                                transaction = FinancialTransaction(
-                                    transaction_type=transactionType,
-                                    date=date_a1,
-                                    currency_code="EUR",
-                                    amount=abs(amount_a1),
-                                    source_account=sourceAccount,
-                                    destination_account=destinationAccount
-                                )
+                                    if time_a1:
+                                        date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                    elif time_a2:
+                                        date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                    
+                                    transaction = FinancialTransaction(
+                                        transaction_type=transactionType,
+                                        date=date_a1,
+                                        currency_code="EUR",
+                                        amount=abs(amount_a1),
+                                        source_account=sourceAccount,
+                                        destination_account=destinationAccount
+                                    )
 
-                                transactions.update({index_dict: transaction})
-                                index_dict += 1
+                                    transactions.update({index_dict: transaction})
+                                    index_dict += 1
 
-                                indexesToDrop_a1.append(transation_a1[0])
-                                indexesToDrop_a2.append(transation_a2[0])
-                                found = True
-                                a1.dataframe.at[transation_a1[0], "Found"] = True
-                                a2.dataframe.at[transation_a2[0], "Found"] = True
-                                #a1.dataframe.drop(transation_a1[0], inplace=True)
-                                #a2.dataframe.drop(transation_a2[0], inplace=True)
-                        
-                        elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT]):
-                            if a1.account_type == AccountType.PAYPAL:
-                                source = source_a1
-                                destination = destination_a1
-                                bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
-                                date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                            elif a2.account_type == AccountType.PAYPAL:
-                                source = source_a2
-                                destination = destination_a2
-                                bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
-                                date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                    indexesToDrop_a1.append(transaction_a1[0])
+                                    indexesToDrop_a2.append(transaction_a2[0])
+                                    found = True
+                                    a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                    a2.dataframe.at[transaction_a2[0], "Found"] = True
+                                    #a1.dataframe.drop(transaction_a1[0], inplace=True)
+                                    #a2.dataframe.drop(transaction_a2[0], inplace=True)
+                            
+                            elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT]):
+                                if a1.account_type == AccountType.PAYPAL:
+                                    source = source_a1
+                                    destination = destination_a1
+                                    bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
+                                    date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                elif a2.account_type == AccountType.PAYPAL:
+                                    source = source_a2
+                                    destination = destination_a2
+                                    bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
+                                    date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
 
-                            if pandas.isna(source):
-                                    source = "PayPal"
+                                if pandas.isna(source):
+                                        source = "PayPal"
 
-                            if source.lower().find(bank_secondAccount.lower()) > -1:
-                                if amount_a1 > 0:
-                                    transactionType = TransactionType.DEPOSIT
-                                    sourceAccount = destination
-                                    destinationAccount = bank_secondAccount
-                                else:
-                                    transactionType = TransactionType.WITHDRAWAL
-                                    destinationAccount = destination
-                                    sourceAccount = bank_secondAccount
+                                if source.lower().find(bank_secondAccount.lower()) > -1:
+                                    if amount_a1 > 0:
+                                        transactionType = TransactionType.DEPOSIT
+                                        sourceAccount = destination
+                                        destinationAccount = bank_secondAccount
+                                    else:
+                                        transactionType = TransactionType.WITHDRAWAL
+                                        destinationAccount = destination
+                                        sourceAccount = bank_secondAccount
 
 
-                                transaction = FinancialTransaction(
-                                    transaction_type=transactionType,
-                                    date=date,
-                                    currency_code="EUR",
-                                    amount=abs(amount_a1),
-                                    source_account=sourceAccount,
-                                    destination_account=destinationAccount
-                                )
+                                    transaction = FinancialTransaction(
+                                        transaction_type=transactionType,
+                                        date=date,
+                                        currency_code="EUR",
+                                        amount=abs(amount_a1),
+                                        source_account=sourceAccount,
+                                        destination_account=destinationAccount
+                                    )
 
-                                transactions.update({index_dict: transaction})
-                                index_dict += 1
+                                    transactions.update({index_dict: transaction})
+                                    index_dict += 1
 
-                                found = True
-                                indexesToDrop_a1.append(transation_a1[0])
-                                indexesToDrop_a2.append(transation_a2[0])
-                                a1.dataframe.at[transation_a1[0], "Found"] = True
-                                a2.dataframe.at[transation_a2[0], "Found"] = True
+                                    found = True
+                                    indexesToDrop_a1.append(transaction_a1[0])
+                                    indexesToDrop_a2.append(transaction_a2[0])
+                                    a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                    a2.dataframe.at[transaction_a2[0], "Found"] = True
 
-                                #a1.dataframe.drop(transation_a1[0], inplace=True)
-                                #a2.dataframe.drop(transation_a2[0], inplace=True)
+                                    #a1.dataframe.drop(transaction_a1[0], inplace=True)
+                                    #a2.dataframe.drop(transaction_a2[0], inplace=True)
                     #if found:
                         #break
                 #if found:
                     #break
         #a1.dataframe.drop(a1.dataframe.index[indexesToDrop_a1], inplace=True)
         #a2.dataframe.drop(a2.dataframe.index[indexesToDrop_a2], inplace=True)
+    
+    return transactions
+
+def elaborate_checking_account_unicredit(account, config):
+    transactions = []
+    fields_account = config.get(account.bank).get(account.account_type.value).get('fields')
+
+    for transaction_account in account.dataframe.itertuples():
+        amount_account = transaction_account[fields_account.get('amount')]
+        date_account = transaction_account[fields_account.get('date')]
+        destination_account = transaction_account[fields_account.get('destination')]
+
+        descPartsBank = re.split(r'\s{2,}', destination_account)
+
+        if transaction_account[account.dataframe.columns.get_loc("Found")+1] == False:
+
+            if "VOSTRI EMOLUMENTI" in destination_account:
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.DEPOSIT,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=amount_account,
+                    source_account=descPartsBank[2],
+                    destination_account="Unicredit"
+                )
+                transaction.setDescription(descPartsBank[3]+descPartsBank[4])
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+            
+            elif "ADDEBITO SEPA DD" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account=descPartsBank[3]
+                )
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+            
+            elif "PRELIEVO" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.TRANSFER,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account="Contanti"
+                )
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            elif "BONIFICO A VOSTRO FAVORE" in destination_account.upper():
+
+                if "BONIFICO SEPA" in descPartsBank[1]:
+                    description = descPartsBank[3]+descPartsBank[4]
+                else:
+                    description = descPartsBank[1]
+
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.DEPOSIT,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account=descPartsBank[2],
+                    destination_account="Unicredit"
+                )
+                transaction.setDescription(description)
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            elif "DISPOSIZIONE DI BONIFICO" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account=descPartsBank[2]
+                )
+                transaction.setDescription(descPartsBank[3])
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            elif "DISPOSIZIONE DI ADDEBITO" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account=descPartsBank[1]
+                )
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+            
+            elif "COMMISSIONI - PROVVIGIONI - SPESE" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account="Banca Unicredit"
+                )
+                transaction.setDescription(descPartsBank[1])
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            elif "IMPOSTA BOLLO" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account="Banca Unicredit"
+                )
+                transaction.setDescription(descPartsBank[0])
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+            
+            elif "CARTA *3455" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.WITHDRAWAL,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Unicredit",
+                    destination_account=descPartsBank[4]
+                )
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            elif "VERSAMENTO" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.DEPOSIT,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Risparmi",
+                    destination_account="Unicredit"
+                )
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+            
+            elif "ACCREDITI VARI" in destination_account.upper():
+                transaction = FinancialTransaction(
+                    transaction_type=TransactionType.DEPOSIT,
+                    date=date_account.to_pydatetime(),
+                    currency_code="EUR",
+                    amount=abs(amount_account),
+                    source_account="Banca Unicredit",
+                    destination_account="Unicredit"
+                )
+                transaction.setDescription(descPartsBank[1])
+                transactions.append(transaction)
+                account.dataframe.at[transaction_account[0], "Found"] = True
+
+            else:
+                #print(lineBank)
+                continue
+    return transactions
+
+def elaborate_paypal(account, config):
+    transactions = []
+    fields_account = config.get("PayPal").get('fields')
+
+    for transaction_account in account.dataframe.itertuples():
+        amount_account = transaction_account[fields_account.get('amount')]
+        date_account = transaction_account[fields_account.get('date')]
+        destination_account = transaction_account[fields_account.get('destination')]
+        time_account = transaction_account[fields_account.get('time')]
+        source_account = transaction_account[fields_account.get('source')]
+
+        date_account = date_account.replace(hour=time_account.hour, minute=time_account.minute)
+
+        if transaction_account[account.dataframe.columns.get_loc("Found")+1] == False:
+
+            if amount_account > 0:
+                transactionType = TransactionType.DEPOSIT
+                sourceAccount = destination_account
+                destinationAccount = source_account
+            else:
+                transactionType = TransactionType.WITHDRAWAL
+                destinationAccount = destination_account
+                sourceAccount = source_account
+
+
+            transaction = FinancialTransaction(
+                transaction_type=transactionType,
+                date=date_account,
+                currency_code="EUR",
+                amount=abs(amount_account),
+                source_account=sourceAccount,
+                destination_account=destinationAccount
+            )
+
+            transactions.append(transaction)
+            account.dataframe.at[transaction_account[0], "Found"] = True
     
     return transactions
