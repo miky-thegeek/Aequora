@@ -1,14 +1,52 @@
 import re
 import pandas
-from account import AccountType
+from account import Account,AccountType
 from transaction import FinancialTransaction, TransactionType
 import compute_next_business_day
 
 
+def get_account_from_key(key, request):
+    account = Account(key)
+
+    if account.account_type == AccountType.DEBIT_CARD:
+        id_parts = key.split("_")
+        associated_id = request.form[f"debitCard_association_{id_parts[1]}"]
+        account.setAssociation(associated_id)
+    elif account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
+        bank = request.form[f"{key}_bank"]
+        account.setBank(bank)
+
+    return account
+
+def get_csv_read_params(account, file_path, config, associated_bank=None):
+    read_params = {"filepath_or_buffer": file_path}
+
+    if account.account_type == AccountType.PAYPAL:
+        read_params.update(config["PayPal"]['pandas_read_csv'])
+    else:
+        bank = associated_bank or account.bank
+        read_params.update(config[bank][account.account_type.value]['pandas_read_csv'])
+
+    return read_params
+
+def get_normalization_function(account, config, normalization, associated_bank=None):
+    if account.account_type == AccountType.PAYPAL:
+        norm_fn_name = config["PayPal"].get('normalizationFunction')
+    else:
+        bank = associated_bank or account.bank
+        norm_fn_name = config[bank][account.account_type.value].get('normalizationFunction')
+
+    return getattr(normalization, norm_fn_name) if norm_fn_name else None
+
+def process_dataframe(df, normalization_fn):
+    if normalization_fn:
+        normalization_fn(df)
+    df["Found"] = False
+    return df
 
 def compare_accounts(accounts, relationships, config):
 
-    transactions = {}
+    transactions = []
     index_dict = 0
 
     for relationship in relationships:
@@ -79,7 +117,8 @@ def compare_accounts(accounts, relationships, config):
                                         destination_account=destinationAccount
                                     )
 
-                                    transactions.update({index_dict: transaction})
+                                    #transactions.update({index_dict: transaction})
+                                    transactions.append(transaction)
                                     index_dict += 1
 
                                     indexesToDrop_a1.append(transaction_a1[0])
@@ -125,7 +164,8 @@ def compare_accounts(accounts, relationships, config):
                                         destination_account=destinationAccount
                                     )
 
-                                    transactions.update({index_dict: transaction})
+                                    #transactions.update({index_dict: transaction})
+                                    transactions.append(transaction)
                                     index_dict += 1
 
                                     found = True

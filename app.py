@@ -23,7 +23,7 @@ fireflyIII = FireflyIII("http://192.168.1.30:8081/", os.environ["fireflyIII_id"]
 def checkExistingTransations(sourceTransations, fireflyAssetId):
     transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
 
-    transactionsNotExistend = {}
+    transactionsNotExistend = []
     i = 0
     j = 0
 
@@ -54,8 +54,9 @@ def checkExistingTransations(sourceTransations, fireflyAssetId):
 
             if len(result["data"]) != 1:
                 for z in range(j, j+n):
-                    transactionsNotExistend.update({i: transactionsSorted[z]})
-                    i += 1
+                    transactionsNotExistend.append(transactionsSorted[z])
+                    #transactionsNotExistend.update({i: transactionsSorted[z]})
+                    #i += 1
         j += n
     return transactionsNotExistend
 
@@ -102,6 +103,13 @@ def generate_dynamic_relationship(accounts):
     
     return relazioni
 
+def listToDict(transactions_list):
+    i = 0
+    transactions_dict = {}
+    for transaction in transactions_list:
+        transactions_dict[i] = transaction
+        i += 1
+    return transactions_dict
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -170,7 +178,9 @@ def index():
             
             transactionsNotExistend = checkExistingTransations(transactions, "1")
 
-            return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
+            transactions_dict = listToDict(transactionsNotExistend)
+
+            return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
         else:
             
             fileBank = request.files['bankFile']
@@ -193,7 +203,9 @@ def index():
 
             transactionsNotExistend = checkExistingTransations(transactions, "1")
 
-            return render_template('list_transaction.html', transactions=transactionsNotExistend, categories=categories)
+            transactions_dict = listToDict(transactionsNotExistend)
+
+            return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
     else:
         if not fireflyIII.checkAccessToken():
             return redirect(fireflyIII.startAuth())
@@ -219,8 +231,22 @@ def new_session():
         fileAccount = request.files[key]
         fileAccountPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_"+key+".csv")
         fileAccount.save(fileAccountPath)
-        account = Account(key)
 
+        account = base_v2.get_account_from_key(key, request)
+
+        if account.account_type == AccountType.DEBIT_CARD:
+            associated_bank = accounts[account.id_associated_account].bank
+        else:
+            associated_bank = None
+
+        read_params = base_v2.get_csv_read_params(account, fileAccountPath, config, associated_bank)
+        normalization_fn = base_v2.get_normalization_function(account, config, normalization, associated_bank)
+
+        df = pandas.read_csv(**read_params)
+        df = base_v2.process_dataframe(df, normalization_fn)
+        
+   
+        """account = Account(key)
         normalizationFunction = None
         pandas_read_csv_params = {"filepath_or_buffer": fileAccountPath}
         if account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
@@ -252,10 +278,10 @@ def new_session():
             normalizationFunction(dataframeCSV)
 
         for transaction in dataframeCSV.itertuples():
-            dataframeCSV.at[transaction[0], "Found"] = False
-        
-        account.setDataframe(dataframeCSV)
+            dataframeCSV.at[transaction[0], "Found"] = False"""
 
+
+        account.setDataframe(df)
         os.remove(fileAccountPath)
         
         accounts.update({key: account})
@@ -272,25 +298,28 @@ def new_session():
 
             list_transactions = elaborate_single_account(account, config)
 
-            index = list(transactions.keys())[-1] + 1
-            for transaction in list_transactions:
-                transactions.update({index: transaction})
-                index += 1
+            transactions.extend(list_transactions)
+            #index = list(transactions.keys())[-1] + 1
+            #for transaction in list_transactions:
+                #transactions.update({index: transaction})
+                #index += 1
         elif account.account_type ==  AccountType.PAYPAL:
             elaborate_single_account = getattr(base_v2, "elaborate_"+AccountType.PAYPAL.value)
 
             list_transactions = elaborate_single_account(account, config)
 
-            index = list(transactions.keys())[-1] + 1
-            for transaction in list_transactions:
-                transactions.update({index: transaction})
-                index += 1
+            transactions.extend(list_transactions)
+            #index = list(transactions.keys())[-1] + 1
+            #for transaction in list_transactions:
+                #transactions.update({index: transaction})
+                #index += 1
 
+    transactions_dict = listToDict(transactions)
 
     for account in accounts.values():
         account.dataframe.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], account.id+".csv"), sep=',', encoding='utf-8', index=False, header=True)
 
-    return render_template('list_transaction.html', transactions=transactions, categories={"data": []})
+    return render_template('list_transaction.html', transactions=transactions_dict, categories={"data": []})
 
 @app.route('/oauth2_callback', methods=['GET'])
 def oauth2_callback():
