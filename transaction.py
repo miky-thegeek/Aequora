@@ -47,13 +47,19 @@ class FinancialTransaction:
     def getHTMLDate(self):
         return self.date.strftime('%Y-%m-%dT%H:%M')
     
-    def getAccountCounterparty(self, bankAccount):
-        if bankAccount == self.source_account:
+    def getCounterpartyAccount(self):
+        if self.transaction_type in [TransactionType.TRANSFER, TransactionType.WITHDRAWAL]:
             return {"id": self.destination_account_id if self.destination_account_id is not None else "", "name": self.destination_account}
             #return self.destination_account
-        else:
+        elif self.transaction_type == TransactionType.DEPOSIT:
             return {"id": self.source_account_id if self.source_account_id is not None else "", "name": self.source_account}
             #return self.source_account
+    
+    def getBankAccount(self):
+        if self.transaction_type == TransactionType.DEPOSIT:
+            return {"id": self.destination_account_id if self.destination_account_id is not None else "", "name": self.destination_account}
+        elif self.transaction_type in [TransactionType.TRANSFER, TransactionType.WITHDRAWAL]:
+            return {"id": self.source_account_id if self.source_account_id is not None else "", "name": self.source_account}
 
     def __str__(self):
         return (

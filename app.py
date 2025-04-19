@@ -20,61 +20,6 @@ app.config['UPLOAD_FOLDER'] = 'upload'
 
 fireflyIII = FireflyIII("http://192.168.1.30:8081/", os.environ["fireflyIII_id"], os.environ["fireflyIII_secret"])
 
-def checkExistingTransations(sourceTransations, fireflyAssetId):
-    transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
-
-    transactionsNotExistend = []
-    i = 0
-    j = 0
-
-    while j < len(transactionsSorted):
-        query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-        
-        goNext = True
-        k = j + 1
-        n = 1
-        
-        if (k != len(transactionsSorted)):
-            while(goNext):
-                if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
-                    n += 1
-                    goNext = True
-                else:
-                    goNext = False
-                if (k != len(transactionsSorted) - 1):
-                    k += 1
-        
-        
-        result = fireflyIII.searchTransations(query)
-
-        if len(result["data"]) != n:
-            query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-
-            result = fireflyIII.searchTransations(query)
-
-            if len(result["data"]) != 1:
-                for z in range(j, j+n):
-                    transactionsNotExistend.append(transactionsSorted[z])
-                    #transactionsNotExistend.update({i: transactionsSorted[z]})
-                    #i += 1
-        j += n
-    return transactionsNotExistend
-
-def getMostUsedCategoryID(accountTransaction):
-
-    categories = {}
-    if "data" in accountTransaction:
-        for singleData in accountTransaction.get('data'):
-            for transaction in singleData.get('attributes').get('transactions'):
-                category_id = transaction.get('category_id')
-                if category_id in categories:
-                    categories.update({category_id: categories[category_id]+1})
-                else:
-                    categories.update({category_id: 1})
-    if len(categories) > 0:
-        return max(categories, key=categories.get)
-    else:
-        return -1
 
 def generate_dynamic_relationship(accounts):
     relazioni = []
@@ -164,10 +109,10 @@ def index():
 
                 if pandas.isna(lineSession[7]):
                     print("isna")
-                    accountCounterpartyID = financialTransaction.getAccountCounterparty("Unicredit").get('id')
+                    accountCounterpartyID = financialTransaction.getCounterpartyAccount().get('id')
                     if accountCounterpartyID is not None:
                         accountTransactions = fireflyIII.getTransactionsOfAccount(accountCounterpartyID)
-                        financialTransaction.setCategoryID(getMostUsedCategoryID(accountTransactions))
+                        financialTransaction.setCategoryID(base_v2.getMostUsedCategoryID(accountTransactions))
                 else:
                     financialTransaction.setCategoryID(lineSession[7])
 
@@ -176,7 +121,7 @@ def index():
                 transactions.append(financialTransaction)
                 i += 1
             
-            transactionsNotExistend = checkExistingTransations(transactions, "1")
+            transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
 
             transactions_dict = listToDict(transactionsNotExistend)
 
@@ -201,23 +146,30 @@ def index():
             os.remove(fileCardPath)
             os.remove(filePayPalPath)
 
-            transactionsNotExistend = checkExistingTransations(transactions, "1")
+            transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
 
             transactions_dict = listToDict(transactionsNotExistend)
 
             return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
     else:
         if not fireflyIII.checkAccessToken():
+            print("GET fireflyIII.checkAccessToken(): "+str(fireflyIII.checkAccessToken()))
             return redirect(fireflyIII.startAuth())
         return render_template('session_manager.html')
 
 @app.route('/index_v2', methods=['GET'])
 def index_v2():
 
+    if not fireflyIII.checkAccessToken():
+        return redirect(fireflyIII.startAuth())
+
     return render_template('session_manager_v2.html')
 
 @app.route('/new_session', methods=['POST'])
 def new_session():
+
+    if not fireflyIII.checkAccessToken():
+        return redirect(fireflyIII.startAuth())
 
     accounts = {}
 
@@ -314,7 +266,11 @@ def new_session():
                 #transactions.update({index: transaction})
                 #index += 1
 
-    transactions_dict = listToDict(transactions)
+    transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
+
+    transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
+
+    transactions_dict = listToDict(transactionsNotExistend)
 
     for account in accounts.values():
         account.dataframe.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], account.id+".csv"), sep=',', encoding='utf-8', index=False, header=True)

@@ -385,3 +385,90 @@ def elaborate_paypal(account, config):
             account.dataframe.at[transaction_account[0], "Found"] = True
     
     return transactions
+
+def findSourceDestinationCategoryID(transactions, fireflyIII):
+    list_transactions = []
+    for transaction in transactions:
+        sourceAccount = transaction.source_account
+        #if pandas.isna(sourceAccount):
+            #sourceAccount = ""
+        sourceAccountsFirefly = fireflyIII.autocompleteAccounts(sourceAccount, "Revenue account")
+        if len(sourceAccountsFirefly) > 0:
+            transaction.setSourceAccountID(sourceAccountsFirefly[0].get('id'))
+        
+        destinationAccount = transaction.destination_account
+        #if pandas.isna(destinationAccount):
+        #    destinationAccount = ""
+        destinationAccountsFirefly = fireflyIII.autocompleteAccounts(destinationAccount, "Expense account")
+        if len(destinationAccountsFirefly) > 0:
+            transaction.setDestinationAccountID(destinationAccountsFirefly[0].get('id'))
+
+        #if not transaction.category_id:
+        if not hasattr(transaction, 'category_id'):
+            accountCounterpartyID = transaction.getCounterpartyAccount().get('id')
+            if accountCounterpartyID is not None:
+                accountTransactions = fireflyIII.getTransactionsOfAccount(accountCounterpartyID)
+                transaction.setCategoryID(getMostUsedCategoryID(accountTransactions))
+        
+        list_transactions.append(transaction)
+    
+    return list_transactions
+
+def getMostUsedCategoryID(accountTransaction):
+
+    categories = {}
+    if "data" in accountTransaction:
+        for singleData in accountTransaction.get('data'):
+            for transaction in singleData.get('attributes').get('transactions'):
+                category_id = transaction.get('category_id')
+                if category_id in categories:
+                    categories.update({category_id: categories[category_id]+1})
+                else:
+                    categories.update({category_id: 1})
+    if len(categories) > 0:
+        return max(categories, key=categories.get)
+    else:
+        return -1
+
+def checkExistingTransations(sourceTransations, fireflyIII):
+    transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
+
+    transactionsNotExistend = []
+    i = 0
+    j = 0
+
+    while j < len(transactionsSorted):
+        fireflyAssetId = transactionsSorted[j].getBankAccount().get("id")
+        if fireflyAssetId == None:
+            fireflyAssetId = 1
+        query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+        
+        goNext = True
+        k = j + 1
+        n = 1
+        
+        if (k != len(transactionsSorted)):
+            while(goNext):
+                if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
+                    n += 1
+                    goNext = True
+                else:
+                    goNext = False
+                if (k != len(transactionsSorted) - 1):
+                    k += 1
+        
+        
+        result = fireflyIII.searchTransations(query)
+
+        if len(result["data"]) != n:
+            query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+
+            result = fireflyIII.searchTransations(query)
+
+            if len(result["data"]) != 1:
+                for z in range(j, j+n):
+                    transactionsNotExistend.append(transactionsSorted[z])
+                    #transactionsNotExistend.update({i: transactionsSorted[z]})
+                    #i += 1
+        j += n
+    return transactionsNotExistend

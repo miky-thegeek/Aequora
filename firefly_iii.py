@@ -45,6 +45,7 @@ class FireflyIII:
     
     def checkAccessToken(self):
         #print("token: "+str(self.client.token))
+        #print("checkAccessToken: "+str(self.client.token))
         if 'access_token' in self.client.token:
             return True
         else:
@@ -64,9 +65,14 @@ class FireflyIII:
     
     def autocompleteAccounts(self, query, type):
         headers = {
-            'Accept': 'application/vnd.api+json',
-            'Authorization': 'Bearer '+self.client.token['access_token'] }
-        response = requests.request("GET", self.base_url+"api/v1/autocomplete/accounts?query="+urllib.parse.quote(query)+"&types="+urllib.parse.quote("Asset account,"+type), headers=headers)
+                'Accept': 'application/vnd.api+json',
+                'Authorization': 'Bearer '+self.client.token['access_token'] }
+        try:
+            response = requests.request("GET", self.base_url+"api/v1/autocomplete/accounts?query="+urllib.parse.quote(query)+"&types="+urllib.parse.quote("Asset account,"+type), headers=headers)
+        except TypeError:
+            print("TypeError autocompleteAccounts")
+            print(query)
+            response = requests.request("GET", self.base_url+"api/v1/autocomplete/accounts?query="+urllib.parse.quote("")+"&types="+urllib.parse.quote("Asset account,"+type), headers=headers)
 
         return response.json()
     
