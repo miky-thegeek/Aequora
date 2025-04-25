@@ -64,7 +64,7 @@
     </div>
 
     <script>
-        const bancaOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'Credem'];
+        const bancaOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'PostePay'];
         let checkingAccountCount = 0;
 
         function showForm(formId) {
@@ -93,7 +93,7 @@
             div.className = 'file-upload-subgroup';
             const id = `${type}_${index}`;
 
-            let html = `<label>${capitalize(type)} ${index}:</label><input type="file" name="${id}" accept=".csv" required>`;
+            let html = `<label>${capitalize(type)} ${index}:</label><input type="file" name="${id}" accept=".csv, .xlsx" required>`;
 
             if (type === 'checkingAccount' || type === 'prepaidCard') {
                 html += `<br><label>Nome Banca:</label> `;

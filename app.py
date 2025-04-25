@@ -191,10 +191,10 @@ def new_session():
         else:
             associated_bank = None
 
-        read_params = base_v2.get_csv_read_params(account, fileAccountPath, config, associated_bank)
+        df = base_v2.get_dataset(account, fileAccountPath, config, associated_bank)
         normalization_fn = base_v2.get_normalization_function(account, config, normalization, associated_bank)
 
-        df = pandas.read_csv(**read_params)
+        #df = pandas.read_csv(**read_params)
         df = base_v2.process_dataframe(df, normalization_fn)
         
    
@@ -204,7 +204,7 @@ def new_session():
         if account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
             bank = request.form[key+"_bank"]
             account.setBank(bank)
-            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_csv'))
+            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_params'))
             if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
                 normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
         #pandas.read_csv(fileAccountPath)
@@ -214,12 +214,12 @@ def new_session():
             account.setAssociation(idAssociatedAccount)
 
             bank = accounts.get(idAssociatedAccount).bank
-            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_csv'))
+            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_params'))
 
             if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
                 normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
         elif account.account_type == AccountType.PAYPAL:
-            pandas_read_csv_params.update(config.get("PayPal").get('pandas_read_csv'))
+            pandas_read_csv_params.update(config.get("PayPal").get('pandas_read_params'))
 
             if config.get('PayPal').get('normalizationFunction'):
                 normalizationFunction = getattr(normalization, config.get('PayPal').get('normalizationFunction'))

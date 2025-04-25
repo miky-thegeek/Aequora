@@ -1,7 +1,23 @@
 {
+    "PostePay": {
+        "prepaid_card": {
+            "file_extension": "xlsx",
+            "pandas_read_params": {
+                "parse_dates":[0, 1], "skiprows":[0, 1]
+            },
+            "normalizationFunction": "normalizePostePay",
+            "fields": {
+                "amount": 3,
+                "date": 2,
+                "destination": 4,
+                "time": 5
+            }
+        }
+    },
     "Unicredit": {
         "checking_account": {
-            "pandas_read_csv": {
+            "file_extension": "csv",
+            "pandas_read_params": {
                 "decimal":",", "sep":";", "parse_dates":[0, 1], "dayfirst":true
             },
             "normalizationFunction": "normalizeBank",
@@ -12,7 +28,8 @@
             }
         },
         "debit_card": {
-            "pandas_read_csv": {
+            "file_extension": "csv",
+            "pandas_read_params": {
                 "decimal":",", "sep":";", "parse_dates":[0, 1, 2], "dayfirst":true, 
                 "date_format":{"Data Registrazione": "%d/%m/%Y", "Ora operazione": "%H:%M", "Data valuta": "%d/%m/%Y"}
             },
@@ -25,7 +42,8 @@
         }
     },
     "PayPal": {
-        "pandas_read_csv": {
+        "file_extension": "csv",
+        "pandas_read_params": {
             "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
         },
         "normalizationFunction": "normalizePayPal",

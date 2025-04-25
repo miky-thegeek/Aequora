@@ -18,16 +18,35 @@ def get_account_from_key(key, request):
 
     return account
 
-def get_csv_read_params(account, file_path, config, associated_bank=None):
-    read_params = {"filepath_or_buffer": file_path}
+def get_dataset(account, file_path, config, associated_bank=None):
+    #read_params = {"filepath_or_buffer": file_path}
 
     if account.account_type == AccountType.PAYPAL:
-        read_params.update(config["PayPal"]['pandas_read_csv'])
+        if config["PayPal"]['file_extension'] == "csv":
+            read_params = {"filepath_or_buffer": file_path}
+        elif config["PayPal"]['file_extension'] == "xlsx":
+            read_params = {"io": file_path}
+        read_params.update(config["PayPal"]['pandas_read_params'])
     else:
         bank = associated_bank or account.bank
-        read_params.update(config[bank][account.account_type.value]['pandas_read_csv'])
+        if config[bank][account.account_type.value]['file_extension'] == "csv":
+            read_params = {"filepath_or_buffer": file_path}
+        elif config[bank][account.account_type.value]['file_extension'] == "xlsx":
+            read_params = {"io": file_path}
+        read_params.update(config[bank][account.account_type.value]['pandas_read_params'])
 
-    return read_params
+    if account.account_type == AccountType.PAYPAL:
+        if config["PayPal"]['file_extension'] == "csv":
+            df = pandas.read_csv(**read_params)
+        elif config["PayPal"]['file_extension'] == "xlsx":
+            df = pandas.read_excel(**read_params)
+    else:
+        if config[bank][account.account_type.value]['file_extension'] == "csv":
+            df = pandas.read_csv(**read_params)
+        elif config[bank][account.account_type.value]['file_extension'] == "xlsx":
+            df = pandas.read_excel(**read_params)
+
+    return df
 
 def get_normalization_function(account, config, normalization, associated_bank=None):
     if account.account_type == AccountType.PAYPAL:
@@ -129,7 +148,7 @@ def compare_accounts(accounts, relationships, config):
                                     #a1.dataframe.drop(transaction_a1[0], inplace=True)
                                     #a2.dataframe.drop(transaction_a2[0], inplace=True)
                             
-                            elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT]):
+                            elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
                                 if a1.account_type == AccountType.PAYPAL:
                                     source = source_a1
                                     destination = destination_a1
@@ -141,8 +160,6 @@ def compare_accounts(accounts, relationships, config):
                                     bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
                                     date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
 
-                                if pandas.isna(source):
-                                        source = "PayPal"
 
                                 if source.lower().find(bank_secondAccount.lower()) > -1:
                                     if amount_a1 > 0:
@@ -153,7 +170,6 @@ def compare_accounts(accounts, relationships, config):
                                         transactionType = TransactionType.WITHDRAWAL
                                         destinationAccount = destination
                                         sourceAccount = bank_secondAccount
-
 
                                     transaction = FinancialTransaction(
                                         transaction_type=transactionType,
@@ -174,10 +190,12 @@ def compare_accounts(accounts, relationships, config):
                                     a1.dataframe.at[transaction_a1[0], "Found"] = True
                                     a2.dataframe.at[transaction_a2[0], "Found"] = True
 
+                                    break
+
                                     #a1.dataframe.drop(transaction_a1[0], inplace=True)
                                     #a2.dataframe.drop(transaction_a2[0], inplace=True)
-                    #if found:
-                        #break
+                    if found:
+                        break
                 #if found:
                     #break
         #a1.dataframe.drop(a1.dataframe.index[indexesToDrop_a1], inplace=True)
