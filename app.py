@@ -245,8 +245,8 @@ def new_session():
     transactions = base_v2.compare_accounts(accounts, relations, config)
 
     for account in accounts.values():
-        if account.account_type ==  AccountType.CHECKING_ACCOUNT:
-            elaborate_single_account = getattr(base_v2, "elaborate_"+AccountType.CHECKING_ACCOUNT.value+"_"+account.bank.lower())
+        if account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
+            elaborate_single_account = getattr(base_v2, "elaborate_"+account.account_type.value+"_"+account.bank.lower())
 
             list_transactions = elaborate_single_account(account, config)
 
