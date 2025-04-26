@@ -1,5 +1,6 @@
 import re
 import pandas
+from datetime import datetime
 from account import Account,AccountType
 from transaction import FinancialTransaction, TransactionType
 import compute_next_business_day
@@ -75,13 +76,17 @@ def compare_accounts(accounts, relationships, config):
         if a1.account_type ==  AccountType.PAYPAL:
             fields_a1 = config.get("PayPal").get('fields')
             bank_a1 = "PayPal"
+            #algorithm_next_day = config.get("PayPal").get('algorithm_next_day')
         elif a1.account_type ==  AccountType.DEBIT_CARD:
             fields_a1 = config.get(accounts.get(a1.id_associated_account).bank).get(a1.account_type.value).get('fields')
             bank_a1 = accounts.get(a1.id_associated_account).bank
+            #algorithm_next_day = config.get(accounts.get(a1.id_associated_account).bank).get(a1.account_type.value).get('algorithm_next_day')
         else:
             fields_a1 = config.get(a1.bank).get(a1.account_type.value).get('fields')
             bank_a1 = a1.bank
+            #algorithm_next_day = config.get(a1.bank).get(a1.account_type.value).get('algorithm_next_day')
         fields_a2 = config.get(a2.bank).get(a2.account_type.value).get('fields')
+        algorithm_next_day = config.get(a2.bank).get(a2.account_type.value).get('algorithm_next_day')
 
 
         indexesToDrop_a1 = []
@@ -107,7 +112,13 @@ def compare_accounts(accounts, relationships, config):
                         source_a2 = transaction_a2[fields_a2.get('source')]
 
                     for daysNumber in range(relationship[2]+1):
-                        if abs(amount_a1) == abs(amount_a2) and compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber) == date_a2.to_pydatetime():
+                        #if (date_a1 > datetime(2024, 1, 2) and date_a1 < datetime(2024, 1, 4)) and (date_a2 > datetime(2024, 1, 5) and date_a2 < datetime(2024, 1, 7)):
+                            #print("transaction_a1: "+str(transaction_a1))
+                            #print("transaction_a2: "+str(transaction_a2))
+                            #print("daysNumber: "+str(daysNumber))
+                            #print(compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber, algorithm_next_day))
+                        if abs(amount_a1) == abs(amount_a2) and compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber, algorithm_next_day) == date_a2.to_pydatetime():
+                            
                             if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
                                 descPartsA1 = re.split(r'\s{2,}', destination_a1)
                                 descPartsA2 = re.split(r'\s{2,}', destination_a2)

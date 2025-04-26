@@ -38,7 +38,7 @@ def generate_dynamic_relationship(accounts):
 
             # Regola 2: paypal → conto o prepagata
             elif t1 == AccountType.PAYPAL and t2 in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
-                relazioni.append((a1.id, a2.id, 3))
+                relazioni.append((a1.id, a2.id, 5))
 
             # Regola 3: prepagata → conto
             elif t1 == AccountType.PREPAID_CARD and t2 == AccountType.CHECKING_ACCOUNT:
@@ -284,7 +284,7 @@ def oauth2_callback():
 
     print("oauth2_callback: "+str(result))
 
-    return redirect('/')
+    return redirect('/index_v2')
 
 @app.route('/save', methods=['POST'])
 def save():

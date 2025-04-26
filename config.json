@@ -6,9 +6,10 @@
                 "parse_dates":[0, 1], "skiprows":[0, 1]
             },
             "normalizationFunction": "normalizePostePay",
+            "algorithm_next_day": "simple",
             "fields": {
                 "amount": 3,
-                "date": 2,
+                "date": 1,
                 "destination": 4,
                 "time": 5
             }
@@ -21,6 +22,7 @@
                 "decimal":",", "sep":";", "parse_dates":[0, 1], "dayfirst":true
             },
             "normalizationFunction": "normalizeBank",
+            "algorithm_next_day": "next_business_day",
             "fields": {
                 "amount": 4,
                 "date": 2,
@@ -33,6 +35,7 @@
                 "decimal":",", "sep":";", "parse_dates":[0, 1, 2], "dayfirst":true, 
                 "date_format":{"Data Registrazione": "%d/%m/%Y", "Ora operazione": "%H:%M", "Data valuta": "%d/%m/%Y"}
             },
+            "algorithm_next_day": "next_business_day",
             "fields": {
                 "amount": 5,
                 "date": 1,
@@ -47,6 +50,7 @@
             "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
         },
         "normalizationFunction": "normalizePayPal",
+        "algorithm_next_day": "next_business_day",
         "fields": {
             "amount": 6,
             "date": 1,
