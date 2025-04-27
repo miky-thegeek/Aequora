@@ -8,7 +8,6 @@ def normalizeBank(csvBank):
         csvBank.at[lineBank[0], 'Importo (EUR)'] = float(lineBank[4].replace('.', '').replace(',', '.'))
 
 def normalizePayPal(csvPayPal):
-    #pagamenti = csvPayPal[csvPayPal['Descrizione'].str.contains('Pagamento|Rimborso')]
     pagamenti = csvPayPal.copy()
     addebiti = csvPayPal[csvPayPal['Descrizione'].str.contains('Bonifico|Versamento generico con carta|Pagamento con credito acquirenti PayPal|Trasferimento avviato dall\'utente|Prelievo|Blocco conto per autorizzazione aperta|Storno di blocco conto generico')]
     for index, pagamento in addebiti.iterrows():

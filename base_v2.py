@@ -20,7 +20,6 @@ def get_account_from_key(key, request):
     return account
 
 def get_dataset(account, file_path, config, associated_bank=None):
-    #read_params = {"filepath_or_buffer": file_path}
 
     if account.account_type == AccountType.PAYPAL:
         if config["PayPal"]['file_extension'] == "csv":
@@ -143,7 +142,6 @@ def compare_accounts(accounts, relationships, config):
                                         destination_account=destinationAccount
                                     )
 
-                                    #transactions.update({index_dict: transaction})
                                     transactions.append(transaction)
                                     index_dict += 1
 
@@ -152,8 +150,6 @@ def compare_accounts(accounts, relationships, config):
                                     found = True
                                     a1.dataframe.at[transaction_a1[0], "Found"] = True
                                     a2.dataframe.at[transaction_a2[0], "Found"] = True
-                                    #a1.dataframe.drop(transaction_a1[0], inplace=True)
-                                    #a2.dataframe.drop(transaction_a2[0], inplace=True)
                             
                             elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
                                 if a1.account_type == AccountType.PAYPAL:
@@ -187,7 +183,6 @@ def compare_accounts(accounts, relationships, config):
                                         destination_account=destinationAccount
                                     )
 
-                                    #transactions.update({index_dict: transaction})
                                     transactions.append(transaction)
                                     index_dict += 1
 
@@ -198,15 +193,7 @@ def compare_accounts(accounts, relationships, config):
                                     a2.dataframe.at[transaction_a2[0], "Found"] = True
 
                                     break
-
-                                    #a1.dataframe.drop(transaction_a1[0], inplace=True)
-                                    #a2.dataframe.drop(transaction_a2[0], inplace=True)
-                    if found:
                         break
-                #if found:
-                    #break
-        #a1.dataframe.drop(a1.dataframe.index[indexesToDrop_a1], inplace=True)
-        #a2.dataframe.drop(a2.dataframe.index[indexesToDrop_a2], inplace=True)
     
     return transactions
 
@@ -528,7 +515,6 @@ def findSourceDestinationCategoryID(transactions, fireflyIII):
         if len(destinationAccountsFirefly) > 0:
             transaction.setDestinationAccountID(destinationAccountsFirefly[0].get('id'))
 
-        #if not transaction.category_id:
         if not hasattr(transaction, 'category_id'):
             accountCounterpartyID = transaction.getCounterpartyAccount().get('id')
             if accountCounterpartyID is not None:
@@ -593,7 +579,6 @@ def checkExistingTransations(sourceTransations, fireflyIII):
             if len(result["data"]) != 1:
                 for z in range(j, j+n):
                     transactionsNotExistend.append(transactionsSorted[z])
-                    #transactionsNotExistend.update({i: transactionsSorted[z]})
-                    #i += 1
+
         j += n
     return transactionsNotExistend

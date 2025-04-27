@@ -8,13 +8,10 @@ def __is_holiday(date, code):
     if "Festa della Liberazione" == holidays.country_holidays(code).get(date):
         return date
     elif date in holidays.country_holidays(code):
-        #print("date in holidays: "+str(date))
         return __is_holiday(__next_day(date), code)
     elif date.weekday() in [5, 6]:
-        #print("date.weekday() in weekend_days: "+str(date))
         return __is_holiday(__next_day(date), code)
     else:
-        #print("else: "+str(date))
         return date
 
 def next_number_business_day(date, code, number):
@@ -24,7 +21,6 @@ def next_number_business_day(date, code, number):
         while i < number:
             next_date = __next_day(next_date)
             next_date = __is_holiday(next_date, code)
-            #print("next_date: "+str(next_date))
 
             i += 1
         return next_date

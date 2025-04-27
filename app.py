@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, send_file
-from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 from base import unicreditMain
@@ -201,42 +200,6 @@ def new_session():
         #df = pandas.read_csv(**read_params)
         df = base_v2.process_dataframe(df, normalization_fn)
         
-   
-        """account = Account(key)
-        normalizationFunction = None
-        pandas_read_csv_params = {"filepath_or_buffer": fileAccountPath}
-        if account.account_type in [AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]:
-            bank = request.form[key+"_bank"]
-            account.setBank(bank)
-            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_params'))
-            if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
-                normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
-        #pandas.read_csv(fileAccountPath)
-        elif account.account_type == AccountType.DEBIT_CARD:
-            idParts = key.split("_")
-            idAssociatedAccount = request.form["debitCard_association_"+idParts[1]]
-            account.setAssociation(idAssociatedAccount)
-
-            bank = accounts.get(idAssociatedAccount).bank
-            pandas_read_csv_params.update(config.get(bank).get(account.account_type.value).get('pandas_read_params'))
-
-            if config.get(bank).get(account.account_type.value).get('normalizationFunction'):
-                normalizationFunction = getattr(normalization, config.get(bank).get(account.account_type.value).get('normalizationFunction'))
-        elif account.account_type == AccountType.PAYPAL:
-            pandas_read_csv_params.update(config.get("PayPal").get('pandas_read_params'))
-
-            if config.get('PayPal').get('normalizationFunction'):
-                normalizationFunction = getattr(normalization, config.get('PayPal').get('normalizationFunction'))
-
-        dataframeCSV = pandas.read_csv(**pandas_read_csv_params)
-
-        if normalizationFunction:
-            normalizationFunction(dataframeCSV)
-
-        for transaction in dataframeCSV.itertuples():
-            dataframeCSV.at[transaction[0], "Found"] = False"""
-
-
         account.setDataframe(df)
         os.remove(fileAccountPath)
         
@@ -253,22 +216,14 @@ def new_session():
             elaborate_single_account = getattr(base_v2, "elaborate_"+account.account_type.value+"_"+account.bank.lower())
 
             list_transactions = elaborate_single_account(account, config)
-
             transactions.extend(list_transactions)
-            #index = list(transactions.keys())[-1] + 1
-            #for transaction in list_transactions:
-                #transactions.update({index: transaction})
-                #index += 1
+            
         elif account.account_type ==  AccountType.PAYPAL:
             elaborate_single_account = getattr(base_v2, "elaborate_"+AccountType.PAYPAL.value)
 
             list_transactions = elaborate_single_account(account, config)
-
             transactions.extend(list_transactions)
-            #index = list(transactions.keys())[-1] + 1
-            #for transaction in list_transactions:
-                #transactions.update({index: transaction})
-                #index += 1
+            
 
     transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
 

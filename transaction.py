@@ -17,7 +17,6 @@ class FinancialTransaction:
         self.amount = amount
         self.source_account = source_account
         self.destination_account = destination_account
-        #self.category = category
         self.destination_account_id = None
         self.source_account_id = None
 
