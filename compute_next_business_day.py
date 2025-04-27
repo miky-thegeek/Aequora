@@ -17,8 +17,8 @@ def __is_holiday(date, code):
         #print("else: "+str(date))
         return date
 
-def next_number_business_day(date, code, number, algorithm):
-    if algorithm == "next_business_day":
+def next_number_business_day(date, code, number):
+    if number >= 0:
         next_date = date
         i = 0
         while i < number:
@@ -28,8 +28,8 @@ def next_number_business_day(date, code, number, algorithm):
 
             i += 1
         return next_date
-    elif algorithm == "simple":
-        return date + timedelta(days=number)
+    else:
+        return date - timedelta(days=abs(number))
 
 def next_business_day(date, code, format):
     date = datetime.strptime(date, format)

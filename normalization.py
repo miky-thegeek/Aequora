@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from dateutil import parser
 import pandas
 import re
 
@@ -43,7 +44,7 @@ def normalizePayPal(csvPayPal):
 
 def normalizePostePay(csvPostePay):
 
-    regex = r"[0-9]{2}\/[0-9]{2}\/[0-9]{4}\s[0-9]{2}\.[0-9]{2}"
+    regex = r"[0-9]{2}\/[0-9]{2}\/[0-9]{4}\s+[0-9]{2}[\.\:][0-9]{2}"
 
     for row in csvPostePay.itertuples():
         desc = row[4]
@@ -51,7 +52,7 @@ def normalizePostePay(csvPostePay):
         finds = re.findall(regex, desc)
 
         if len(finds) > 0:
-            date_object = datetime.strptime(finds[0], "%d/%m/%Y %H.%M")
+            date_object = parser.parse(finds[0].replace('.', ':'))
 
             csvPostePay.at[row[0], "Time"] = date_object
 
