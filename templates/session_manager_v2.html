@@ -55,9 +55,9 @@
 
     <div id="continueSessionForm" class="form-container hidden">
         <h2>Carica il file della sessione precedente</h2>
-        <form>
+        <form id="continueSessionFormContent" method = "POST"  enctype = "multipart/form-data" action="/continue_session">
             <label for="previousSessionFile">File CSV della sessione precedente:</label>
-            <input type="file" id="previousSessionFile" accept=".csv" required><br><br>
+            <input type="file" id="previousSessionFile" name="previousSessionFile" accept=".csv" required><br><br>
 
             <button type="submit">Continua Sessione</button>
         </form>

@@ -173,6 +173,8 @@ def new_session():
 
     if not fireflyIII.checkAccessToken():
         return redirect(fireflyIII.startAuth())
+    
+    categories = fireflyIII.getCategories()
 
     accounts = {}
 
@@ -234,7 +236,34 @@ def new_session():
     for account in accounts.values():
         account.dataframe.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], account.id+".csv"), sep=',', encoding='utf-8', index=False, header=True)
 
-    return render_template('list_transaction.html', transactions=transactions_dict, categories={"data": []})
+    return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
+
+@app.route('/continue_session', methods=['POST'])
+def continue_session():
+    if not fireflyIII.checkAccessToken():
+        return redirect(fireflyIII.startAuth())
+    
+    categories = fireflyIII.getCategories()
+
+    filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+    previousSessionFile = request.files['previousSessionFile']
+    previousSessionFilePath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileSession.csv")
+    previousSessionFile.save(previousSessionFilePath)
+
+    csvFileSession = pandas.read_csv(previousSessionFilePath)
+    os.remove(previousSessionFilePath)
+
+    transactions = base_v2.read_previous_transactions(csvFileSession)
+
+    transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
+
+    transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
+
+    transactions_dict = listToDict(transactionsNotExistend)
+
+    return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
+    
 
 @app.route('/oauth2_callback', methods=['GET'])
 def oauth2_callback():

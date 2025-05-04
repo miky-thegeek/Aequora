@@ -63,6 +63,32 @@ def process_dataframe(df, normalization_fn):
     df["Found"] = False
     return df
 
+def read_previous_transactions(csvFileSession):
+    transactions = []
+
+    for lineSession in csvFileSession.itertuples():
+
+        if lineSession[2] == "withdrawal":
+            transactionType = TransactionType.WITHDRAWAL
+        elif lineSession[2] == "deposit":
+            transactionType = TransactionType.DEPOSIT
+        else:
+            transactionType = TransactionType.TRANSFER
+
+        date = datetime.strptime(lineSession[1], '%Y-%m-%dT%H:%M')
+
+        financialTransaction = FinancialTransaction(transactionType, date, "EUR", lineSession[6], lineSession[3], lineSession[4])
+
+        if not pandas.isna(lineSession[5]):
+            financialTransaction.setDescription(lineSession[5])
+        
+        if not pandas.isna(lineSession[7]):
+            financialTransaction.setCategoryID(lineSession[7])
+
+        transactions.append(financialTransaction)
+    
+    return transactions    
+
 def compare_accounts(accounts, relationships, config):
 
     transactions = []
@@ -193,6 +219,7 @@ def compare_accounts(accounts, relationships, config):
                                     a2.dataframe.at[transaction_a2[0], "Found"] = True
 
                                     break
+                    if found:
                         break
     
     return transactions
