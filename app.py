@@ -59,114 +59,11 @@ def listToDict(transactions_list):
         i += 1
     return transactions_dict
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['GET'])
 def index():
-    if request.method == 'POST':
-
-        if not fireflyIII.checkAccessToken():
-            return redirect(fireflyIII.startAuth())
-        
-        categories = fireflyIII.getCategories()
-
-        filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-
-        if "previousSessionFile" in request.files:
-            previousSessionFile = request.files['previousSessionFile']
-            previousSessionFilePath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileSession.csv")
-            previousSessionFile.save(previousSessionFilePath)
-
-            transactions = []
-            i = 0
-            csvFileSession = pandas.read_csv(previousSessionFilePath)
-            os.remove(previousSessionFilePath)
-
-            for lineSession in csvFileSession.itertuples():
-
-                if lineSession[2] == "withdrawal":
-                    transactionType = TransactionType.WITHDRAWAL
-                elif lineSession[2] == "deposit":
-                    transactionType = TransactionType.DEPOSIT
-                else:
-                    transactionType = TransactionType.TRANSFER
-
-                date = datetime.strptime(lineSession[1], '%Y-%m-%dT%H:%M')
-
-                financialTransaction = FinancialTransaction(transactionType, date, "EUR", lineSession[6], lineSession[3], lineSession[4])
-
-                if not pandas.isna(lineSession[5]):
-                    financialTransaction.setDescription(lineSession[5])
-
-                sourceAccount = lineSession[3]
-                if pandas.isna(sourceAccount):
-                    sourceAccount = ""
-                sourceAccountsFirefly = fireflyIII.autocompleteAccounts(sourceAccount, "Revenue account")
-                if len(sourceAccountsFirefly) > 0:
-                    financialTransaction.setSourceAccountID(sourceAccountsFirefly[0].get('id'))
-                
-                destinationAccount = lineSession[4]
-                if pandas.isna(destinationAccount):
-                    destinationAccount = ""
-                destinationAccountsFirefly = fireflyIII.autocompleteAccounts(destinationAccount, "Expense account")
-                if len(destinationAccountsFirefly) > 0:
-                    financialTransaction.setDestinationAccountID(destinationAccountsFirefly[0].get('id'))
-
-                if pandas.isna(lineSession[7]):
-                    print("isna")
-                    accountCounterpartyID = financialTransaction.getCounterpartyAccount().get('id')
-                    if accountCounterpartyID is not None:
-                        accountTransactions = fireflyIII.getTransactionsOfAccount(accountCounterpartyID)
-                        financialTransaction.setCategoryID(base_v2.getMostUsedCategoryID(accountTransactions))
-                else:
-                    financialTransaction.setCategoryID(lineSession[7])
-
-
-
-                transactions.append(financialTransaction)
-                i += 1
-            
-            transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
-
-            transactions_dict = listToDict(transactionsNotExistend)
-
-            return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
-        else:
-            
-            fileBank = request.files['bankFile']
-            fileBankPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileBank.csv")
-            fileBank.save(fileBankPath)
-
-            fileCard = request.files['debitCardFile']
-            fileCardPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_fileCard.csv")
-            fileCard.save(fileCardPath)
-
-            filePayPal = request.files['paypalFile']
-            filePayPalPath = os.path.join(app.config['UPLOAD_FOLDER'], filePrefix+"_filePayPal.csv")
-            filePayPal.save(filePayPalPath)
-
-            transactions = unicreditMain(fileBankPath, fileCardPath, filePayPalPath)
-
-            os.remove(fileBankPath)
-            os.remove(fileCardPath)
-            os.remove(filePayPalPath)
-
-            transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
-
-            transactions_dict = listToDict(transactionsNotExistend)
-
-            return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
-    else:
-        if not fireflyIII.checkAccessToken():
-            print("GET fireflyIII.checkAccessToken(): "+str(fireflyIII.checkAccessToken()))
-            return redirect(fireflyIII.startAuth())
-        return render_template('session_manager.html')
-
-@app.route('/index_v2', methods=['GET'])
-def index_v2():
-
-    if not fireflyIII.checkAccessToken():
-        return redirect(fireflyIII.startAuth())
-
-    return render_template('session_manager_v2.html')
+	if not fireflyIII.checkAccessToken():
+		return redirect(fireflyIII.startAuth())
+	return render_template('session_manager.html')
 
 @app.route('/new_session', methods=['POST'])
 def new_session():
@@ -175,9 +72,7 @@ def new_session():
         return redirect(fireflyIII.startAuth())
     
     categories = fireflyIII.getCategories()
-
     accounts = {}
-
     config = {}
     with open('config.json', 'r') as file:
         config = json.load(file)
@@ -198,8 +93,6 @@ def new_session():
 
         df = base_v2.get_dataset(account, fileAccountPath, config, associated_bank)
         normalization_fn = base_v2.get_normalization_function(account, config, normalization, associated_bank)
-
-        #df = pandas.read_csv(**read_params)
         df = base_v2.process_dataframe(df, normalization_fn)
         
         account.setDataframe(df)
@@ -228,9 +121,7 @@ def new_session():
             
 
     transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
-
     transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
-
     transactions_dict = listToDict(transactionsNotExistend)
 
     for account in accounts.values():
@@ -272,7 +163,7 @@ def oauth2_callback():
 
     print("oauth2_callback: "+str(result))
 
-    return redirect('/index_v2')
+    return redirect('/')
 
 @app.route('/save', methods=['POST'])
 def save():
