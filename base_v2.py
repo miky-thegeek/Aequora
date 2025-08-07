@@ -571,8 +571,7 @@ def getMostUsedCategoryID(accountTransaction):
 def checkExistingTransations(sourceTransations, fireflyIII):
     transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
 
-    transactionsNotExistend = []
-    i = 0
+    transactionsNotExistentTemp = []
     j = 0
 
     while j < len(transactionsSorted):
@@ -585,6 +584,7 @@ def checkExistingTransations(sourceTransations, fireflyIII):
         k = j + 1
         n = 1
         
+        # Check if there are identical transactions
         if (k != len(transactionsSorted)):
             while(goNext):
                 if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
@@ -592,20 +592,44 @@ def checkExistingTransations(sourceTransations, fireflyIII):
                     goNext = True
                 else:
                     goNext = False
+                
                 if (k != len(transactionsSorted) - 1):
                     k += 1
         
-        
         result = fireflyIII.searchTransations(query)
-
+        # If these identical transactions are not in financial manager, it check if they are stored as a single transaction 
         if len(result["data"]) != n:
             query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
 
             result = fireflyIII.searchTransations(query)
 
+            # If the single transaction does not exist, these identical transaction are added to the list of non-existent transactions
             if len(result["data"]) != 1:
                 for z in range(j, j+n):
-                    transactionsNotExistend.append(transactionsSorted[z])
+                    transactionsNotExistentTemp.append(transactionsSorted[z])
 
         j += n
-    return transactionsNotExistend
+
+    transactionsNotExistent = []
+    transactionStoredToExclude = ""
+    # Check if the transaction are stored with parts
+    for transaction in transactionsNotExistentTemp:
+        query = "account_id:"+transaction.getCounterpartyAccount().get("id")+" date_on:"+transaction.date.strftime('%Y-%m-%d')+transactionStoredToExclude
+
+        result = fireflyIII.searchTransations(query)
+
+        if len(result["data"]) > 0:
+            
+            for storedTransaction in result["data"]:
+                transactionStoredAmount = 0
+                for part in storedTransaction.get("attributes").get("transactions"):
+                    transactionStoredAmount += float(part.get("amount"))
+                
+                if transaction.amount != transactionStoredAmount:
+                    transactionsNotExistent.append(transaction)
+                else:
+                    transactionStoredToExclude += " -account_id:"+storedTransaction.get("id")
+        else:
+            transactionsNotExistent.append(transaction)
+
+    return transactionsNotExistent

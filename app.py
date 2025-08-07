@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, send_file
 from datetime import datetime
 import os
-from base import unicreditMain
 from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv

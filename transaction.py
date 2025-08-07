@@ -41,6 +41,8 @@ class FinancialTransaction:
         self.destination_account_id = destinationAccountID
 
     def setCategoryID(self, categoryID):
+        if categoryID == None:
+            categoryID = 0
         self.category_id = str(int(float(categoryID)))
 
     def getHTMLDate(self):
