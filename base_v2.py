@@ -98,16 +98,32 @@ def compare_accounts(accounts, relationships, config):
         print(accounts.get(relationship[0]).account_type.value+" "+accounts.get(relationship[1]).account_type.value)
         a1 = accounts.get(relationship[0])
         a2 = accounts.get(relationship[1])
+        
+        # Validate accounts exist
+        if not a1 or not a2:
+            print(f"Warning: Account not found in relationship {relationship}")
+            continue
+            
         if a1.account_type ==  AccountType.PAYPAL:
-            fields_a1 = config.get("PayPal").get('fields')
+            fields_a1 = config.get("PayPal", {}).get('fields')
             bank_a1 = "PayPal"
         elif a1.account_type ==  AccountType.DEBIT_CARD:
-            fields_a1 = config.get(accounts.get(a1.id_associated_account).bank).get(a1.account_type.value).get('fields')
-            bank_a1 = accounts.get(a1.id_associated_account).bank
+            associated_account = accounts.get(a1.id_associated_account)
+            if not associated_account:
+                print(f"Warning: Associated account not found for {a1.id_associated_account}")
+                continue
+            fields_a1 = config.get(associated_account.bank, {}).get(a1.account_type.value, {}).get('fields')
+            bank_a1 = associated_account.bank
         else:
-            fields_a1 = config.get(a1.bank).get(a1.account_type.value).get('fields')
+            fields_a1 = config.get(a1.bank, {}).get(a1.account_type.value, {}).get('fields')
             bank_a1 = a1.bank
-        fields_a2 = config.get(a2.bank).get(a2.account_type.value).get('fields')
+            
+        fields_a2 = config.get(a2.bank, {}).get(a2.account_type.value, {}).get('fields')
+        
+        # Validate fields configuration
+        if not fields_a1 or not fields_a2:
+            print(f"Warning: Missing fields configuration for accounts")
+            continue
 
 
         indexesToDrop_a1 = []
@@ -123,7 +139,16 @@ def compare_accounts(accounts, relationships, config):
                 source_a1 = transaction_a1[fields_a1.get('source')]
 
             for transaction_a2 in a2.dataframe.itertuples():
-                if transaction_a2[a2.dataframe.columns.get_loc("Found")+1] == False:
+                # Safer way to check if transaction is found
+                found_index = None
+                try:
+                    found_index = a2.dataframe.columns.get_loc("Found")
+                    is_found = transaction_a2[found_index + 1]  # +1 because itertuples() adds index
+                except (KeyError, IndexError):
+                    # If "Found" column doesn't exist, assume not found
+                    is_found = False
+                
+                if is_found == False:
                     amount_a2 = transaction_a2[fields_a2.get('amount')]
                     date_a2 = transaction_a2[fields_a2.get('date')]
                     destination_a2 = transaction_a2[fields_a2.get('destination')]
@@ -133,92 +158,97 @@ def compare_accounts(accounts, relationships, config):
                         source_a2 = transaction_a2[fields_a2.get('source')]
 
                     for daysNumber in relationship[2]:
-                        #if (date_a1 > datetime(2024, 1, 2) and date_a1 < datetime(2024, 1, 4)) and (date_a2 > datetime(2024, 1, 5) and date_a2 < datetime(2024, 1, 7)):
-                            #print("transaction_a1: "+str(transaction_a1))
-                            #print("transaction_a2: "+str(transaction_a2))
-                            #print("daysNumber: "+str(daysNumber))
-                            #print(compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber))
-                        if abs(amount_a1) == abs(amount_a2) and compute_next_business_day.next_number_business_day(date_a1.to_pydatetime(), 'IT', daysNumber) == date_a2.to_pydatetime():
+                        # Validate date types before comparison
+                        try:
+                            date_a1_py = date_a1.to_pydatetime() if hasattr(date_a1, 'to_pydatetime') else date_a1
+                            date_a2_py = date_a2.to_pydatetime() if hasattr(date_a2, 'to_pydatetime') else date_a2
                             
-                            if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
-                                descPartsA1 = re.split(r'\s{2,}', destination_a1)
-                                descPartsA2 = re.split(r'\s{2,}', destination_a2)
-
-                                if (descPartsA1[0] == descPartsA2[3]) or (descPartsA1[0] == descPartsA2[4]):
-                                    if amount_a1 > 0:
-                                        transactionType = TransactionType.DEPOSIT
-                                        sourceAccount = descPartsA1[0]
-                                        destinationAccount = bank_a1
-                                    else:
-                                        transactionType = TransactionType.WITHDRAWAL
-                                        destinationAccount = descPartsA1[0]
-                                        sourceAccount = bank_a1
-
-                                    if time_a1:
-                                        date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                                    elif time_a2:
-                                        date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
-                                    
-                                    transaction = FinancialTransaction(
-                                        transaction_type=transactionType,
-                                        date=date_a1,
-                                        currency_code="EUR",
-                                        amount=abs(amount_a1),
-                                        source_account=sourceAccount,
-                                        destination_account=destinationAccount
-                                    )
-
-                                    transactions.append(transaction)
-                                    index_dict += 1
-
-                                    indexesToDrop_a1.append(transaction_a1[0])
-                                    indexesToDrop_a2.append(transaction_a2[0])
-                                    found = True
-                                    a1.dataframe.at[transaction_a1[0], "Found"] = True
-                                    a2.dataframe.at[transaction_a2[0], "Found"] = True
+                            next_business_day = compute_next_business_day.next_number_business_day(date_a1_py, 'IT', daysNumber)
                             
-                            elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
-                                if a1.account_type == AccountType.PAYPAL:
-                                    source = source_a1
-                                    destination = destination_a1
-                                    bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
-                                    date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                                elif a2.account_type == AccountType.PAYPAL:
-                                    source = source_a2
-                                    destination = destination_a2
-                                    bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
-                                    date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
+                            if abs(amount_a1) == abs(amount_a2) and next_business_day == date_a2_py:
+                                
+                                if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
+                                    descPartsA1 = re.split(r'\s{2,}', destination_a1)
+                                    descPartsA2 = re.split(r'\s{2,}', destination_a2)
+
+                                    if (len(descPartsA1) > 0 and len(descPartsA2) > 3 and descPartsA1[0] == descPartsA2[3]) or (len(descPartsA1) > 0 and len(descPartsA2) > 4 and descPartsA1[0] == descPartsA2[4]):
+                                        if amount_a1 > 0:
+                                            transactionType = TransactionType.DEPOSIT
+                                            sourceAccount = descPartsA1[0]
+                                            destinationAccount = bank_a1
+                                        else:
+                                            transactionType = TransactionType.WITHDRAWAL
+                                            destinationAccount = descPartsA1[0]
+                                            sourceAccount = bank_a1
+
+                                        if time_a1:
+                                            date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                        elif time_a2:
+                                            date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                        
+                                        transaction = FinancialTransaction(
+                                            transaction_type=transactionType,
+                                            date=date_a1,
+                                            currency_code="EUR",
+                                            amount=abs(amount_a1),
+                                            source_account=sourceAccount,
+                                            destination_account=destinationAccount
+                                        )
+
+                                        transactions.append(transaction)
+                                        index_dict += 1
+
+                                        indexesToDrop_a1.append(transaction_a1[0])
+                                        indexesToDrop_a2.append(transaction_a2[0])
+                                        found = True
+                                        a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                        a2.dataframe.at[transaction_a2[0], "Found"] = True
+                                
+                                elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
+                                    if a1.account_type == AccountType.PAYPAL:
+                                        source = source_a1
+                                        destination = destination_a1
+                                        bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
+                                        date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                    elif a2.account_type == AccountType.PAYPAL:
+                                        source = source_a2
+                                        destination = destination_a2
+                                        bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
+                                        date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
 
 
-                                if source.lower().find(bank_secondAccount.lower()) > -1:
-                                    if amount_a1 > 0:
-                                        transactionType = TransactionType.DEPOSIT
-                                        sourceAccount = destination
-                                        destinationAccount = bank_secondAccount
-                                    else:
-                                        transactionType = TransactionType.WITHDRAWAL
-                                        destinationAccount = destination
-                                        sourceAccount = bank_secondAccount
+                                    if source.lower().find(bank_secondAccount.lower()) > -1:
+                                        if amount_a1 > 0:
+                                            transactionType = TransactionType.DEPOSIT
+                                            sourceAccount = destination
+                                            destinationAccount = bank_secondAccount
+                                        else:
+                                            transactionType = TransactionType.WITHDRAWAL
+                                            destinationAccount = destination
+                                            sourceAccount = bank_secondAccount
 
-                                    transaction = FinancialTransaction(
-                                        transaction_type=transactionType,
-                                        date=date,
-                                        currency_code="EUR",
-                                        amount=abs(amount_a1),
-                                        source_account=sourceAccount,
-                                        destination_account=destinationAccount
-                                    )
+                                        transaction = FinancialTransaction(
+                                            transaction_type=transactionType,
+                                            date=date,
+                                            currency_code="EUR",
+                                            amount=abs(amount_a1),
+                                            source_account=sourceAccount,
+                                            destination_account=destinationAccount
+                                        )
 
-                                    transactions.append(transaction)
-                                    index_dict += 1
+                                        transactions.append(transaction)
+                                        index_dict += 1
 
-                                    found = True
-                                    indexesToDrop_a1.append(transaction_a1[0])
-                                    indexesToDrop_a2.append(transaction_a2[0])
-                                    a1.dataframe.at[transaction_a1[0], "Found"] = True
-                                    a2.dataframe.at[transaction_a2[0], "Found"] = True
+                                        found = True
+                                        indexesToDrop_a1.append(transaction_a1[0])
+                                        indexesToDrop_a2.append(transaction_a2[0])
+                                        a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                        a2.dataframe.at[transaction_a2[0], "Found"] = True
 
-                                    break
+                                        break
+                        except Exception as e:
+                            print(f"Error processing transaction comparison: {e}")
+                            continue
                     if found:
                         break
     
@@ -235,7 +265,16 @@ def elaborate_checking_account_unicredit(account, config):
 
         descPartsBank = re.split(r'\s{2,}', destination_account)
 
-        if transaction_account[account.dataframe.columns.get_loc("Found")+1] == False:
+        # Safer way to check if transaction is found
+        found_index = None
+        try:
+            found_index = account.dataframe.columns.get_loc("Found")
+            is_found = transaction_account[found_index + 1]  # +1 because itertuples() adds index
+        except (KeyError, IndexError):
+            # If "Found" column doesn't exist, assume not found
+            is_found = False
+        
+        if is_found == False:
 
             if "VOSTRI EMOLUMENTI" in destination_account:
                 transaction = FinancialTransaction(
@@ -388,7 +427,11 @@ def elaborate_checking_account_unicredit(account, config):
 
 def elaborate_paypal(account, config):
     transactions = []
-    fields_account = config.get("PayPal").get('fields')
+    fields_account = config.get("PayPal", {}).get('fields')
+    
+    if not fields_account:
+        print("Warning: Missing PayPal fields configuration")
+        return transactions
 
     for transaction_account in account.dataframe.itertuples():
         amount_account = transaction_account[fields_account.get('amount')]
@@ -397,9 +440,29 @@ def elaborate_paypal(account, config):
         time_account = transaction_account[fields_account.get('time')]
         source_account = transaction_account[fields_account.get('source')]
 
-        date_account = date_account.replace(hour=time_account.hour, minute=time_account.minute)
+        # Safe time handling
+        try:
+            if hasattr(time_account, 'hour') and hasattr(time_account, 'minute'):
+                date_account = date_account.replace(hour=time_account.hour, minute=time_account.minute)
+            elif isinstance(time_account, str):
+                # Handle string time format if needed
+                from datetime import datetime
+                time_obj = datetime.strptime(time_account, '%H:%M')
+                date_account = date_account.replace(hour=time_obj.hour, minute=time_obj.minute)
+        except (AttributeError, ValueError) as e:
+            print(f"Warning: Could not process time for transaction: {e}")
+            # Continue without time modification
 
-        if transaction_account[account.dataframe.columns.get_loc("Found")+1] == False:
+        # Safer way to check if transaction is found
+        found_index = None
+        try:
+            found_index = account.dataframe.columns.get_loc("Found")
+            is_found = transaction_account[found_index + 1]  # +1 because itertuples() adds index
+        except (KeyError, IndexError):
+            # If "Found" column doesn't exist, assume not found
+            is_found = False
+        
+        if is_found == False:
 
             if amount_account > 0:
                 transactionType = TransactionType.DEPOSIT
@@ -437,12 +500,25 @@ def elaborate_prepaid_card_postepay(account, config):
 
         date_account = date_account.replace(hour=time_account.hour, minute=time_account.minute)
 
-        if transaction_account[account.dataframe.columns.get_loc("Found")+1] == False:
+        # Safer way to check if transaction is found
+        found_index = None
+        try:
+            found_index = account.dataframe.columns.get_loc("Found")
+            is_found = transaction_account[found_index + 1]  # +1 because itertuples() adds index
+        except (KeyError, IndexError):
+            # If "Found" column doesn't exist, assume not found
+            is_found = False
+        
+        if is_found == False:
 
             if "PAGAMENTO ON LINE" in destination_account or "PAGAMENTO POS ESERCENTE" in destination_account or "PAGAMENTO PAGA" in destination_account:
                 regex = r"[0-9]{2}\/[0-9]{2}\/[0-9]{4}\s[0-9]{2}\.[0-9]{2}"
 
-                split = re.split(regex, destination_account)
+                try:
+                    split = re.split(regex, destination_account)
+                except re.error as e:
+                    print(f"Warning: Invalid regex pattern: {e}")
+                    split = [destination_account]
 
                 transaction = FinancialTransaction(
                 transaction_type=TransactionType.WITHDRAWAL,
@@ -555,81 +631,117 @@ def findSourceDestinationCategoryID(transactions, fireflyIII):
 def getMostUsedCategoryID(accountTransaction):
 
     categories = {}
-    if "data" in accountTransaction:
-        for singleData in accountTransaction.get('data'):
-            for transaction in singleData.get('attributes').get('transactions'):
-                category_id = transaction.get('category_id')
-                if category_id in categories:
-                    categories.update({category_id: categories[category_id]+1})
-                else:
-                    categories.update({category_id: 1})
+    try:
+        if "data" in accountTransaction and isinstance(accountTransaction.get('data'), list):
+            for singleData in accountTransaction.get('data'):
+                if isinstance(singleData, dict) and 'attributes' in singleData:
+                    transactions = singleData.get('attributes', {}).get('transactions', [])
+                    if isinstance(transactions, list):
+                        for transaction in transactions:
+                            if isinstance(transaction, dict):
+                                category_id = transaction.get('category_id')
+                                if category_id is not None:
+                                    if category_id in categories:
+                                        categories[category_id] = categories[category_id] + 1
+                                    else:
+                                        categories[category_id] = 1
+    except Exception as e:
+        print(f"Error processing account transactions: {e}")
+        return -1
+        
     if len(categories) > 0:
         return max(categories, key=categories.get)
     else:
         return -1
 
 def checkExistingTransations(sourceTransations, fireflyIII):
+    if not sourceTransations:
+        return []
+        
     transactionsSorted = sorted(sourceTransations, key=lambda x: (x.date, x.amount))
 
     transactionsNotExistentTemp = []
     j = 0
 
     while j < len(transactionsSorted):
-        fireflyAssetId = transactionsSorted[j].getBankAccount().get("id")
-        if fireflyAssetId == None:
-            fireflyAssetId = 1
-        query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-        
-        goNext = True
-        k = j + 1
-        n = 1
-        
-        # Check if there are identical transactions
-        if (k != len(transactionsSorted)):
-            while(goNext):
-                if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
-                    n += 1
-                    goNext = True
-                else:
-                    goNext = False
+        try:
+            bank_account = transactionsSorted[j].getBankAccount()
+            fireflyAssetId = bank_account.get("id") if bank_account else None
+            if fireflyAssetId is None:
+                fireflyAssetId = 1
                 
-                if (k != len(transactionsSorted) - 1):
+            query = "account_id:"+str(fireflyAssetId)+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
+            
+            goNext = True
+            k = j + 1
+            n = 1
+            
+            # Check if there are identical transactions
+            if k < len(transactionsSorted):
+                while goNext and k < len(transactionsSorted):
+                    if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
+                        n += 1
+                        goNext = True
+                    else:
+                        goNext = False
+                    
                     k += 1
-        
-        result = fireflyIII.searchTransations(query)
-        # If these identical transactions are not in financial manager, it check if they are stored as a single transaction 
-        if len(result["data"]) != n:
-            query = "account_id:"+fireflyAssetId+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
-
+            
             result = fireflyIII.searchTransations(query)
+            # If these identical transactions are not in financial manager, it check if they are stored as a single transaction 
+            if len(result.get("data", [])) != n:
+                query = "account_id:"+str(fireflyAssetId)+" amount:"+('{:.2f}'.format(transactionsSorted[j].amount * n))+" date_on:"+transactionsSorted[j].date.strftime('%Y-%m-%d')
 
-            # If the single transaction does not exist, these identical transaction are added to the list of non-existent transactions
-            if len(result["data"]) != 1:
-                for z in range(j, j+n):
-                    transactionsNotExistentTemp.append(transactionsSorted[z])
+                result = fireflyIII.searchTransations(query)
 
-        j += n
+                # If the single transaction does not exist, these identical transaction are added to the list of non-existent transactions
+                if len(result.get("data", [])) != 1:
+                    for z in range(j, j+n):
+                        if z < len(transactionsSorted):
+                            transactionsNotExistentTemp.append(transactionsSorted[z])
+
+            j += n
+        except Exception as e:
+            print(f"Error processing transaction at index {j}: {e}")
+            j += 1
 
     transactionsNotExistent = []
     transactionStoredToExclude = ""
     # Check if the transaction are stored with parts
     for transaction in transactionsNotExistentTemp:
-        query = "account_id:"+transaction.getCounterpartyAccount().get("id")+" date_on:"+transaction.date.strftime('%Y-%m-%d')+transactionStoredToExclude
-
-        result = fireflyIII.searchTransations(query)
-
-        if len(result["data"]) > 0:
-            
-            for storedTransaction in result["data"]:
-                transactionStoredAmount = 0
-                for part in storedTransaction.get("attributes").get("transactions"):
-                    transactionStoredAmount += float(part.get("amount"))
+        try:
+            counterparty_account = transaction.getCounterpartyAccount()
+            if not counterparty_account:
+                transactionsNotExistent.append(transaction)
+                continue
                 
-                if transaction.amount != transactionStoredAmount:
-                    transactionsNotExistent.append(transaction)
-                else:
-                    transactionStoredToExclude += " -account_id:"+storedTransaction.get("id")
-        else:
+            query = "account_id:"+str(counterparty_account.get("id"))+" date_on:"+transaction.date.strftime('%Y-%m-%d')+transactionStoredToExclude
+
+            result = fireflyIII.searchTransations(query)
+
+            if len(result.get("data", [])) > 0:
+                
+                for storedTransaction in result.get("data", []):
+                    transactionStoredAmount = 0
+                    try:
+                        transactions_parts = storedTransaction.get("attributes", {}).get("transactions", [])
+                        for part in transactions_parts:
+                            if isinstance(part, dict):
+                                amount = part.get("amount")
+                                if amount is not None:
+                                    transactionStoredAmount += float(amount)
+                    except (ValueError, TypeError) as e:
+                        print(f"Error processing transaction amount: {e}")
+                        transactionStoredAmount = 0
+                    
+                    if transaction.amount != transactionStoredAmount:
+                        transactionsNotExistent.append(transaction)
+                    else:
+                        transactionStoredToExclude += " -account_id:"+str(storedTransaction.get("id"))
+            else:
+                transactionsNotExistent.append(transaction)
+        except Exception as e:
+            print(f"Error processing transaction: {e}")
             transactionsNotExistent.append(transaction)
 
     return transactionsNotExistent

@@ -4,6 +4,7 @@ import urllib
 import base64
 import logging
 import secrets
+import hashlib
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -11,11 +12,12 @@ logger = logging.getLogger(__name__)
 
 class FireflyIII:
 
-    def __init__(self, baseURL, clientID, clientSecret):
+    def __init__(self, baseURL, clientID, clientSecret, redirect_uri=None):
         self.base_url = baseURL.rstrip('/') + '/'  # Ensure trailing slash
         self.client_id = clientID
         self.client_secret = clientSecret
         self.client = WebApplicationClient(self.client_id)
+        self.redirect_uri = redirect_uri or 'https://192.168.1.25:8443/oauth2_callback'
         
         # Validate required parameters
         if not self.base_url or not self.client_id or not self.client_secret:
@@ -23,15 +25,26 @@ class FireflyIII:
 
     def startAuth(self):
         try:
-
             # Generate state parameter for CSRF protection
             state = secrets.token_urlsafe(32)
+            
+            # Generate PKCE code verifier and challenge
+            code_verifier = secrets.token_urlsafe(32)
+            code_challenge = base64.urlsafe_b64encode(
+                hashlib.sha256(code_verifier.encode('utf-8')).digest()
+            ).decode('utf-8').rstrip('=')
+            
+            # Store PKCE code verifier for later use
+            self.code_verifier = code_verifier
             self.state = state
-
+            
             return self.client.prepare_request_uri(
                 self.base_url+"oauth/authorize",
-                redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
-                state = state
+                redirect_uri=self.redirect_uri,
+                scope='',  # Add scopes if needed
+                state=state,
+                code_challenge=code_challenge,
+                code_challenge_method='S256'
             )
         except Exception as e:
             logger.error(f"Error in startAuth: {e}")
@@ -41,17 +54,20 @@ class FireflyIII:
         if not code:
             logger.error("No authorization code provided")
             return False
-
+            
+        # Validate state parameter if provided
         if state and hasattr(self, 'state') and state != self.state:
             logger.error("State parameter mismatch - possible CSRF attack")
             return False
-
+            
         try:
+            # Prepare request body with PKCE code verifier
             data = self.client.prepare_request_body(
-                code = code,
-                redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
-                client_id = self.client_id,
-                client_secret = self.client_secret
+                code=code,
+                redirect_uri=self.redirect_uri,
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                code_verifier=getattr(self, 'code_verifier', None)
             )
             token_url = self.base_url+"oauth/token"
             
@@ -70,10 +86,19 @@ class FireflyIII:
                 return False
                 
             response_data = response.json()
+            
+            # Check for OAuth2 error responses
+            if 'error' in response_data:
+                logger.error(f"OAuth2 error: {response_data.get('error')} - {response_data.get('error_description', '')}")
+                return False
+                
             if response_data.get('hint') == "Authorization code has expired":
                 logger.warning("Authorization code has expired")
                 return False
             
+            # Clear sensitive data
+            if hasattr(self, 'code_verifier'):
+                delattr(self, 'code_verifier')
             if hasattr(self, 'state'):
                 delattr(self, 'state')
             
@@ -94,7 +119,6 @@ class FireflyIII:
         #print("checkAccessToken: "+str(self.client.token))
         try:
             if hasattr(self.client, 'token') and self.client.token and 'access_token' in self.client.token:
-                #print(f"client.token: {self.client.token}")
                 # Check if token is expired
                 if 'expires_at' in self.client.token:
                     import time
@@ -107,7 +131,7 @@ class FireflyIII:
         except Exception as e:
             logger.error(f"Error checking access token: {e}")
             return False
-
+    
     def _refreshToken(self):
         """Refresh the access token using refresh token"""
         try:
@@ -152,7 +176,7 @@ class FireflyIII:
         except Exception as e:
             logger.error(f"Error refreshing token: {e}")
             return False
-
+        
     def searchTransations(self, query, accessToken = ""):
         if not query:
             logger.warning("Empty query provided to searchTransations")

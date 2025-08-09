@@ -5,6 +5,7 @@ from firefly_iii import FireflyIII
 from collections import defaultdict
 import csv
 import json
+import logging
 
 import pandas
 from transaction import FinancialTransaction, TransactionType
@@ -12,6 +13,10 @@ from account import Account, AccountType
 from datetime import datetime
 import normalization
 import base_v2
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'upload'
@@ -243,12 +248,29 @@ def continue_session():
 
 @app.route('/oauth2_callback', methods=['GET'])
 def oauth2_callback():
+    # Get OAuth2 parameters
+    code = request.args.get('code')
+    state = request.args.get('state')
+    error = request.args.get('error')
+    error_description = request.args.get('error_description')
+    
+    # Handle OAuth2 errors
+    if error:
+        logger.error(f"OAuth2 error: {error} - {error_description}")
+        return f"Authentication error: {error}", 400
+    
+    if not code:
+        logger.error("No authorization code received")
+        return "No authorization code received", 400
 
-    result = fireflyIII.continueAuth(request.args.get('code'))
+    result = fireflyIII.continueAuth(code, state)
 
     print("oauth2_callback: "+str(result))
-
-    return redirect('/')
+    
+    if result:
+        return redirect('/')
+    else:
+        return "Authentication failed", 400
 
 @app.route('/save', methods=['POST'])
 def save():
