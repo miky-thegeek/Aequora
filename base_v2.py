@@ -679,7 +679,7 @@ def checkExistingTransations(sourceTransations, fireflyIII):
             # Check if there are identical transactions
             if k < len(transactionsSorted):
                 while goNext and k < len(transactionsSorted):
-                    if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')):
+                    if (transactionsSorted[j].amount == transactionsSorted[k].amount) and (transactionsSorted[j].date.strftime('%Y-%m-%d') == transactionsSorted[k].date.strftime('%Y-%m-%d')) and (transactionsSorted[j].transaction_type == transactionsSorted[k].transaction_type):
                         n += 1
                         goNext = True
                     else:
@@ -733,11 +733,10 @@ def checkExistingTransations(sourceTransations, fireflyIII):
                     except (ValueError, TypeError) as e:
                         print(f"Error processing transaction amount: {e}")
                         transactionStoredAmount = 0
-                    
                     if transaction.amount != transactionStoredAmount:
                         transactionsNotExistent.append(transaction)
                     else:
-                        transactionStoredToExclude += " -account_id:"+str(storedTransaction.get("id"))
+                        transactionStoredToExclude += " -id:"+str(storedTransaction.get("id"))
             else:
                 transactionsNotExistent.append(transaction)
         except Exception as e:
