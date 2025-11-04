@@ -191,8 +191,11 @@ def new_session():
 
     return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
 
-@app.route('/continue_session', methods=['POST'])
+@app.route('/continue_session', methods=['POST', 'GET'])
 def continue_session():
+    if request.method == 'GET':
+        return redirect('/')
+    
     if not fireflyIII.checkAccessToken():
         return redirect(fireflyIII.startAuth())
     

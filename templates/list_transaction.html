@@ -5,17 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Transazioni</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        /*body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { width: 500px;display: block;float: left;}
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         th { background-color: #f2f2f2; }
-        input, select { width: 100%; box-sizing: border-box; }
+        input, select { width: 100%; box-sizing: border-box; }*/
+        .table { width: auto !important; margin: 0 auto !important; }
         .old-value { color: gray; font-style: italic; font-size: 0.8em; display: none; margin-top: 2px; }
         .editAccount {display: none;}
         .account_id {font-size: 0.7em;}
+        .select2-container--default .select2-selection--single {
+            border: none !important;
+            box-shadow: none !important;
+        }
     </style>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+          $('.transactionType-select').select2({
+            width: '100%',
+            templateResult: function(option) {
+              if (!option.id) return option.text;
+              var icon = $(option.element).data('icon');
+              return $('<span><i class="bi ' + icon + ' me-2"></i>' + option.text + '</span>');
+            },
+            templateSelection: function(option) {
+              if (!option.id) return option.text;
+              var icon = $(option.element).data('icon');
+              return $('<span><i class="bi ' + icon + ' me-2"></i>' + option.text + '</span>');
+            },
+            minimumResultsForSearch: Infinity // Nasconde la barra di ricerca
+          });
+        });
+        </script>
 </head>
 <body>
     <h1>Importazione delle Transazioni</h1>
@@ -35,31 +63,31 @@
         <option value="Entrate">-->
     </datalist>
 
-    <table>
+    <table class="table">
         <thead>
             <tr>
-                <th>Data e Ora</th>
-                <th>Tipologia</th>
-                <th>Account sorgente</th>
-                <th>Account destinatario</th>
-                <th>Descrizione</th>
-                <th>Ammontare</th>
-                <th>Categoria</th>
+                <th scope="col">Data e Ora</th>
+                <th scope="col">Tipologia</th>
+                <th scope="col">Account sorgente</th>
+                <th scope="col">Account destinatario</th>
+                <th scope="col">Descrizione</th>
+                <th scope="col">Ammontare</th>
+                <th scope="col">Categoria</th>
             </tr>
         </thead>
         <tbody id="transactionTableBody">
             <form method="post" action="/save" id="transactionsForm">
                 {% for key, transaction in transactions.items() %}
                 <tr>
-                    <td><input type="datetime-local" name="date_{{ key }}" value="{{ transaction.getHTMLDate() }}"></td>
-                    <td><select name="transactionType_{{ key }}" id="transactionType_{{ key }}" autocomplete="off"><option value="">Tipo transizione</option>
-                        <option value="withdrawal" {% if transaction.transaction_type.value == "withdrawal" %} selected {% endif %}>Prelievo</option>
-                        <option value="deposit" {% if transaction.transaction_type.value == "deposit" %} selected {% endif %}>Deposito</option>
-                        <option value="transfer" {% if transaction.transaction_type.value == "transfer" %} selected {% endif %}>Trasferimento</option></select>
+                    <td><input type="datetime-local" name="date_{{ key }}" value="{{ transaction.getHTMLDate() }}" class="form-control border border-0"></td>
+                    <td><select name="transactionType_{{ key }}" id="transactionType_{{ key }}" autocomplete="off" class="form-select transactionType-select"><option value="">Tipo transizione</option>
+                        <option value="withdrawal" {% if transaction.transaction_type.value == "withdrawal" %} selected {% endif %} data-icon="bi bi-arrow-up-circle text-danger"> Prelievo </option>
+                        <option value="deposit" {% if transaction.transaction_type.value == "deposit" %} selected {% endif %} data-icon="bi bi-arrow-down-circle text-success"> Deposito </option>
+                        <option value="transfer" {% if transaction.transaction_type.value == "transfer" %} selected {% endif %} data-icon="bi bi-arrow-right-circle text-primary"> Trasferimento </option></select>
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" idAccount="{{ transaction.source_account_id }}" {% if transaction.source_account_id %} readonly {% endif %} class="track-changeAccount">
+                            <input type="text" list="accountList" id="sourceAccount" name="sourceAccount_{{ key }}" value="{{ transaction.source_account }}" idAccount="{{ transaction.source_account_id }}" {% if transaction.source_account_id %} readonly {% endif %} class="track-changeAccount form-control border border-0">
                             {% if transaction.source_account_id %} <div class="account_id">*</div>{% endif %}
                             <input type="hidden" name="sourceAccountId_{{ key }}" value="{{ transaction.source_account_id }}">
                             {% if not transaction.source_account_id %}<button class="editAccount" onclick="editAccount(this)">✎</button>{% endif %}
@@ -68,7 +96,7 @@
                     </td>
                     <td>
                         <div style="display: flex; gap: 5px;">
-                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" idAccount="{{ transaction.destination_account_id }}" {% if transaction.destination_account_id %} readonly {% endif %} class="track-changeAccount">
+                            <input type="text" list="accountList" id="destinationAccount" name="destinationAccount_{{ key }}" value="{{ transaction.destination_account }}" idAccount="{{ transaction.destination_account_id }}" {% if transaction.destination_account_id %} readonly {% endif %} class="track-changeAccount form-control border border-0">
                             {% if transaction.destination_account_id %}<div class="account_id">*</div>{% endif %}
                             <input type="hidden" name="destinationAccountId_{{ key }}" value="{{ transaction.destination_account_id }}">
                             {% if not transaction.destination_account_id %}<button class="editAccount" onclick="editAccount(this)">✎</button>{% endif %}
@@ -76,12 +104,12 @@
                         <span class="old-value">Controparte 1</span>
                     </td>
                     <td>
-                        <input type="text" name="description_{{ key }}" value="{{ transaction.description }}" class="track-change">
+                        <input type="text" name="description_{{ key }}" value="{{ transaction.description }}" class="track-change form-control border border-0">
                         <span class="old-value">{{ transaction.description }}</span>
                     </td>
-                    <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}"></td>
+                    <td><input type="number" name="amount_{{ key }}" step="0.01" value="{{ transaction.amount }}" class="form-control border border-0"></td>
                     <td>
-                        <select name="category_{{ key }}" class="track-change-select">
+                        <select name="category_{{ key }}" class="track-change-select form-select border border-0">
                             <option value="">Category</option>
                             {% for category in categories.get('data') %}
                             <option value="{{ category.get('id') }}" {% if category.get('id') == transaction.category_id %} selected {% endif %}>{{ category.get('attributes').get('name') }}</option>
