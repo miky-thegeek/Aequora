@@ -65,6 +65,51 @@ def listToDict(transactions_list):
         i += 1
     return transactions_dict
 
+# ----------------------
+# Helpers to remove duplication
+# ----------------------
+
+def parse_form_grouped(form_items):
+    grouped_data = defaultdict(dict)
+    for key, value in form_items.items():
+        try:
+            prefix, suffix = key.rsplit('_', 1)
+            grouped_data[suffix][prefix] = value
+        except ValueError:
+            continue
+    return grouped_data
+
+
+def csv_rows_from_grouped(grouped_data):
+    csv_rows = []
+    for _, value in grouped_data.items():
+        csv_rows.append(value)
+    return csv_rows
+
+
+CSV_FIELDNAMES = ['date', 'transactionType', 'sourceAccount', 'destinationAccount', 'description', 'amount', 'category', 'sourceAccountId', 'destinationAccountId']
+
+
+def dataframe_from_grouped(grouped_data):
+    normalized_rows = []
+    for _, row in grouped_data.items():
+        normalized = {k: row.get(k) for k in CSV_FIELDNAMES}
+        normalized_rows.append(normalized)
+    df = pandas.DataFrame(normalized_rows, columns=CSV_FIELDNAMES)
+    # Ensure empty category is treated as missing so downstream logic skips it
+    if 'category' in df.columns:
+        df['category'] = df['category'].replace('', pandas.NA)
+    return df
+
+
+def build_transactions_context_from_df(df):
+    transactions = base_v2.read_previous_transactions(df)
+    transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
+    transactions_not_existing = base_v2.checkExistingTransations(transactions, fireflyIII)
+    transactions_dict = listToDict(transactions_not_existing)
+    categories = fireflyIII.getCategories()
+    return transactions_dict, categories
+
 @app.route('/', methods=['GET'])
 def index():
 	if not fireflyIII.checkAccessToken():
@@ -233,14 +278,7 @@ def continue_session():
     except Exception as e:
         return f"Error processing file: {e}", 500
 
-    transactions = base_v2.read_previous_transactions(csvFileSession)
-
-    transactions = base_v2.findSourceDestinationCategoryID(transactions, fireflyIII)
-
-    transactionsNotExistend = base_v2.checkExistingTransations(transactions, fireflyIII)
-
-    transactions_dict = listToDict(transactionsNotExistend)
-
+    transactions_dict, categories = build_transactions_context_from_df(csvFileSession)
     return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
     
 
@@ -255,17 +293,9 @@ def oauth2_callback():
 
 @app.route('/save', methods=['POST'])
 def save():
-    # Dizionario per raggruppare i dati
-    grouped_data = defaultdict(dict)
-
-    # Raggruppamento dei dati
-    for key, value in request.form.items():
-        prefix, suffix = key.rsplit('_', 1)
-        grouped_data[suffix][prefix] = value
-
-    csv_rows = []
-    for key, value in grouped_data.items():
-        csv_rows.append(value)
+    grouped_data = parse_form_grouped(request.form)
+    print(grouped_data.items())
+    csv_rows = csv_rows_from_grouped(grouped_data)
 
     filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     safe_filename = f"{filePrefix}_fileTransactions.csv"
@@ -289,18 +319,7 @@ def save():
 
 @app.route('/insert', methods=['POST'])
 def insert():
-
-    # Dizionario per raggruppare i dati
-    grouped_data = defaultdict(dict)
-
-    # Raggruppamento dei dati
-    for key, value in request.form.items():
-        try:
-            prefix, suffix = key.rsplit('_', 1)
-            grouped_data[suffix][prefix] = value
-        except ValueError:
-            # Skip malformed keys
-            continue
+    grouped_data = parse_form_grouped(request.form)
 
     csv_rows = []
     results = []
@@ -351,6 +370,16 @@ def insert():
         #dataJSON = json.dumps(data)
 
     return json.dumps(results)
+
+@app.route('/reprocess', methods=['POST'])
+def reprocess():
+    if not fireflyIII.checkAccessToken():
+        return redirect(fireflyIII.startAuth())
+
+    grouped_data = parse_form_grouped(request.form)
+    df = dataframe_from_grouped(grouped_data)
+    transactions_dict, categories = build_transactions_context_from_df(df)
+    return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
 
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'

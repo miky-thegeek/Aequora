@@ -14,7 +14,7 @@ class FinancialTransaction:
         self.transaction_type = self._validate_transaction_type(transaction_type)
         self.date = date
         self.currency_code = currency_code.upper()  
-        self.amount = amount
+        self.amount = float(amount)
         self.source_account = source_account
         self.destination_account = destination_account
         self.destination_account_id = None
