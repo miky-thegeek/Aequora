@@ -1,12 +1,24 @@
 import re
 import pandas
 from datetime import datetime
-from account import Account,AccountType
-from transaction import FinancialTransaction, TransactionType
+from entities.account import Account, AccountType
+from entities.transaction import FinancialTransaction, TransactionType
 import compute_next_business_day
 
 
 def get_account_from_key(key, request):
+    """Get Account object from form key and request data.
+    
+    Creates an Account object from the key and extracts additional
+    information (bank, associated account) from the request form.
+    
+    Args:
+        key (str): Account key from form (e.g., 'checkingAccount_1').
+        request (Request): Flask request object containing form data.
+        
+    Returns:
+        Account: Configured Account object with bank and association set.
+    """
     account = Account(key)
 
     if account.account_type == AccountType.DEBIT_CARD:
@@ -20,7 +32,21 @@ def get_account_from_key(key, request):
     return account
 
 def get_dataset(account, file_path, config, associated_bank=None):
-
+    """Load account transaction data from file into pandas DataFrame.
+    
+    Reads CSV or XLSX file based on account type and configuration,
+    using appropriate pandas read parameters from config.
+    
+    Args:
+        account (Account): Account object containing account type information.
+        file_path (str): Path to the transaction data file.
+        config (dict): Configuration dictionary with file format and read parameters.
+        associated_bank (str, optional): Bank name for associated accounts
+                                        (e.g., for debit cards). Defaults to None.
+        
+    Returns:
+        pandas.DataFrame: DataFrame containing transaction data from the file.
+    """
     if account.account_type == AccountType.PAYPAL:
         if config["PayPal"]['file_extension'] == "csv":
             read_params = {"filepath_or_buffer": file_path}
@@ -49,6 +75,21 @@ def get_dataset(account, file_path, config, associated_bank=None):
     return df
 
 def get_normalization_function(account, config, normalization, associated_bank=None):
+    """Get normalization function for account data processing.
+    
+    Retrieves the normalization function name from config and returns
+    the corresponding function from the normalization module.
+    
+    Args:
+        account (Account): Account object containing account type information.
+        config (dict): Configuration dictionary with normalization function names.
+        normalization (module): Normalization module containing functions.
+        associated_bank (str, optional): Bank name for associated accounts.
+                                        Defaults to None.
+        
+    Returns:
+        function or None: Normalization function if found in config, None otherwise.
+    """
     if account.account_type == AccountType.PAYPAL:
         norm_fn_name = config["PayPal"].get('normalizationFunction')
     else:
@@ -58,12 +99,38 @@ def get_normalization_function(account, config, normalization, associated_bank=N
     return getattr(normalization, norm_fn_name) if norm_fn_name else None
 
 def process_dataframe(df, normalization_fn):
+    """Process DataFrame by applying normalization and adding Found column.
+    
+    Applies normalization function if provided and adds a 'Found' column
+    initialized to False for tracking matched transactions.
+    
+    Args:
+        df (pandas.DataFrame): DataFrame to process.
+        normalization_fn (function or None): Normalization function to apply.
+        
+    Returns:
+        pandas.DataFrame: Processed DataFrame with 'Found' column added.
+    """
     if normalization_fn:
         normalization_fn(df)
     df["Found"] = False
     return df
 
 def read_previous_transactions(csvFileSession):
+    """Read transactions from a CSV session DataFrame.
+    
+    Parses a pandas DataFrame containing previously saved transaction data
+    and creates FinancialTransaction objects.
+    
+    Args:
+        csvFileSession (pandas.DataFrame): DataFrame with columns for date,
+                                         transactionType, sourceAccount,
+                                         destinationAccount, description,
+                                         amount, and category.
+        
+    Returns:
+        list: List of FinancialTransaction objects.
+    """
     transactions = []
 
     for lineSession in csvFileSession.itertuples():
@@ -90,7 +157,21 @@ def read_previous_transactions(csvFileSession):
     return transactions    
 
 def compare_accounts(accounts, relationships, config):
-
+    """Compare transactions between related accounts to find matches.
+    
+    Matches transactions between related accounts based on amount, date,
+    and description patterns. Marks matched transactions as 'Found' in
+    the account DataFrames.
+    
+    Args:
+        accounts (dict): Dictionary of Account objects keyed by account ID.
+        relationships (list): List of tuples (account1_id, account2_id, [day_offsets])
+                           representing valid relationships.
+        config (dict): Configuration dictionary with field mappings.
+        
+    Returns:
+        list: List of FinancialTransaction objects representing matched transactions.
+    """
     transactions = []
     index_dict = 0
 
@@ -255,6 +336,19 @@ def compare_accounts(accounts, relationships, config):
     return transactions
 
 def elaborate_checking_account_unicredit(account, config):
+    """Elaborate transactions for Unicredit checking account.
+    
+    Processes transactions from a Unicredit checking account DataFrame,
+    identifying transaction types based on description patterns and
+    creating FinancialTransaction objects.
+    
+    Args:
+        account (Account): Account object containing Unicredit checking account data.
+        config (dict): Configuration dictionary with field mappings.
+        
+    Returns:
+        list: List of FinancialTransaction objects for identified transactions.
+    """
     transactions = []
     fields_account = config.get(account.bank).get(account.account_type.value).get('fields')
 
@@ -426,6 +520,19 @@ def elaborate_checking_account_unicredit(account, config):
     return transactions
 
 def elaborate_paypal(account, config):
+    """Elaborate transactions for PayPal account.
+    
+    Processes transactions from a PayPal account DataFrame, determining
+    transaction types based on amount sign and creating FinancialTransaction
+    objects.
+    
+    Args:
+        account (Account): Account object containing PayPal account data.
+        config (dict): Configuration dictionary with field mappings.
+        
+    Returns:
+        list: List of FinancialTransaction objects for all transactions.
+    """
     transactions = []
     fields_account = config.get("PayPal", {}).get('fields')
     
@@ -489,6 +596,19 @@ def elaborate_paypal(account, config):
     return transactions
 
 def elaborate_prepaid_card_postepay(account, config):
+    """Elaborate transactions for PostePay prepaid card account.
+    
+    Processes transactions from a PostePay prepaid card DataFrame,
+    identifying transaction types based on description patterns and
+    creating FinancialTransaction objects.
+    
+    Args:
+        account (Account): Account object containing PostePay prepaid card data.
+        config (dict): Configuration dictionary with field mappings.
+        
+    Returns:
+        list: List of FinancialTransaction objects for identified transactions.
+    """
     transactions = []
     fields_account = config.get(account.bank).get(account.account_type.value).get('fields')
 
@@ -602,6 +722,19 @@ def elaborate_prepaid_card_postepay(account, config):
     return transactions
 
 def findSourceDestinationCategoryID(transactions, fireflyIII):
+    """Find and set source, destination, and category IDs for transactions.
+    
+    Enriches transactions by finding matching accounts in FireflyIII
+    and setting account IDs. Also attempts to set category IDs based
+    on counterparty account history.
+    
+    Args:
+        transactions (list): List of FinancialTransaction objects to enrich.
+        fireflyIII (FireflyIII): FireflyIII client instance for API calls.
+        
+    Returns:
+        list: List of enriched FinancialTransaction objects with IDs set.
+    """
     list_transactions = []
     for transaction in transactions:
         sourceAccount = transaction.source_account
@@ -629,7 +762,18 @@ def findSourceDestinationCategoryID(transactions, fireflyIII):
     return list_transactions
 
 def getMostUsedCategoryID(accountTransaction):
-
+    """Get the most frequently used category ID from account transactions.
+    
+    Analyzes transaction history for an account and returns the category
+    ID that appears most frequently.
+    
+    Args:
+        accountTransaction (dict): FireflyIII API response containing account
+                                  transaction data.
+        
+    Returns:
+        int: Most frequently used category ID, or -1 if no categories found.
+    """
     categories = {}
     try:
         if "data" in accountTransaction and isinstance(accountTransaction.get('data'), list):
@@ -655,6 +799,18 @@ def getMostUsedCategoryID(accountTransaction):
         return -1
 
 def checkExistingTransations(sourceTransations, fireflyIII):
+    """Check which transactions already exist in FireflyIII.
+    
+    Searches FireflyIII for existing transactions and filters out
+    duplicates, returning only transactions that don't exist yet.
+    
+    Args:
+        sourceTransations (list): List of FinancialTransaction objects to check.
+        fireflyIII (FireflyIII): FireflyIII client instance for API calls.
+        
+    Returns:
+        list: List of FinancialTransaction objects that don't exist in FireflyIII.
+    """
     if not sourceTransations:
         return []
         

@@ -8,8 +8,8 @@ import json
 import logging
 
 import pandas
-from transaction import FinancialTransaction, TransactionType
-from account import Account, AccountType
+from entities.transaction import FinancialTransaction, TransactionType
+from entities.account import Account, AccountType
 from datetime import datetime
 import normalization
 import base_v2

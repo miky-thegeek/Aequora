@@ -12,6 +12,16 @@ logger = logging.getLogger(__name__)
 class FireflyIII:
 
     def __init__(self, baseURL, clientID, clientSecret):
+        """Initialize FireflyIII client.
+        
+        Args:
+            baseURL (str): Base URL of the FireflyIII instance.
+            clientID (str): OAuth2 client ID.
+            clientSecret (str): OAuth2 client secret.
+            
+        Raises:
+            ValueError: If any required parameter is missing.
+        """
         self.base_url = baseURL.rstrip('/') + '/'  # Ensure trailing slash
         self.client_id = clientID
         self.client_secret = clientSecret
@@ -22,6 +32,16 @@ class FireflyIII:
             raise ValueError("Missing required parameters: baseURL, clientID, or clientSecret")
 
     def startAuth(self):
+        """Start OAuth2 authentication flow.
+        
+        Generates authorization URL with state parameter for CSRF protection.
+        
+        Returns:
+            str: Authorization URL to redirect user to.
+            
+        Raises:
+            Exception: If authorization URL generation fails.
+        """
         try:
 
             # Generate state parameter for CSRF protection
@@ -38,6 +58,18 @@ class FireflyIII:
             raise
     
     def continueAuth(self, code, state=None):
+        """Continue OAuth2 authentication flow with authorization code.
+        
+        Exchanges authorization code for access token and refresh token.
+        
+        Args:
+            code (str): Authorization code from OAuth2 callback.
+            state (str, optional): State parameter for CSRF protection.
+                                 Defaults to None.
+        
+        Returns:
+            bool: True if authentication successful, False otherwise.
+        """
         if not code:
             logger.error("No authorization code provided")
             return False
@@ -90,6 +122,14 @@ class FireflyIII:
 
     
     def checkAccessToken(self):
+        """Check if access token is valid and refresh if expired.
+        
+        Verifies access token exists and is not expired. If expired,
+        attempts to refresh using refresh token.
+        
+        Returns:
+            bool: True if valid access token exists, False otherwise.
+        """
         #print("token: "+str(self.client.token))
         #print("checkAccessToken: "+str(self.client.token))
         try:
@@ -109,7 +149,14 @@ class FireflyIII:
             return False
 
     def _refreshToken(self):
-        """Refresh the access token using refresh token"""
+        """Refresh the access token using refresh token.
+        
+        Uses the refresh token to obtain a new access token from
+        the OAuth2 token endpoint.
+        
+        Returns:
+            bool: True if token refresh successful, False otherwise.
+        """
         try:
             if not hasattr(self.client, 'token') or not self.client.token or 'refresh_token' not in self.client.token:
                 logger.error("No refresh token available")
@@ -154,6 +201,19 @@ class FireflyIII:
             return False
 
     def searchTransations(self, query, accessToken = ""):
+        """Search for transactions in FireflyIII.
+        
+        Searches FireflyIII transactions using a query string.
+        
+        Args:
+            query (str): Search query string (e.g., "account_id:1 amount:100.00").
+            accessToken (str, optional): Access token to use. If not provided,
+                                       uses token from client. Defaults to "".
+        
+        Returns:
+            dict: FireflyIII API response with 'data' key containing transactions,
+                 or {"data": []} on error.
+        """
         if not query:
             logger.warning("Empty query provided to searchTransations")
             return {"data": []}
@@ -192,6 +252,18 @@ class FireflyIII:
             return {"data": []}
     
     def autocompleteAccounts(self, query, type):
+        """Autocomplete accounts in FireflyIII.
+        
+        Searches for accounts matching the query string and account type.
+        
+        Args:
+            query (str): Account name or identifier to search for.
+            type (str): Account type filter (e.g., "Revenue account", "Expense account").
+        
+        Returns:
+            list or dict: FireflyIII API response with account suggestions,
+                        or empty list on error.
+        """
         if not query or not type:
             logger.warning("Empty query or type provided to autocompleteAccounts")
             return []
@@ -234,6 +306,14 @@ class FireflyIII:
             return []
     
     def getCategories(self):
+        """Get all categories from FireflyIII.
+        
+        Retrieves all categories from the FireflyIII instance.
+        
+        Returns:
+            dict: FireflyIII API response with 'data' key containing categories,
+                 or {"data": []} on error.
+        """
         try:
             if not hasattr(self.client, 'token') or not self.client.token or 'access_token' not in self.client.token:
                 logger.error("No valid access token available")
@@ -264,6 +344,17 @@ class FireflyIII:
             return {"data": []}
     
     def getTransactionsOfAccount(self, accountID):
+        """Get all transactions for a specific account.
+        
+        Retrieves transaction history for a given account ID.
+        
+        Args:
+            accountID (str or int): FireflyIII account ID.
+        
+        Returns:
+            dict: FireflyIII API response with 'data' key containing transactions,
+                 or {"data": []} on error.
+        """
         if not accountID:
             logger.warning("Empty accountID provided to getTransactionsOfAccount")
             return {"data": []}
@@ -297,6 +388,18 @@ class FireflyIII:
             return {"data": []}
     
     def insertTransactions(self, dictonaryData):
+        """Insert transactions into FireflyIII.
+        
+        Creates new transactions in FireflyIII using the provided data.
+        
+        Args:
+            dictonaryData (dict): Transaction data dictionary following
+                                FireflyIII API format with 'transactions' key.
+        
+        Returns:
+            dict: FireflyIII API response with created transactions, or
+                 {"error": "..."} on error.
+        """
         if not dictonaryData:
             logger.warning("Empty data provided to insertTransactions")
             return {"error": "No data provided"}
