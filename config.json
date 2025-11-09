@@ -20,7 +20,7 @@
             "pandas_read_params": {
                 "decimal":",", "sep":";", "parse_dates":[0, 1], "dayfirst":true
             },
-            "normalizationFunction": "normalizeBank",
+            "normalizationFunction": "normalizeUnicredit",
             "fields": {
                 "amount": 4,
                 "date": 2,

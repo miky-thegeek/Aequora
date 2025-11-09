@@ -11,7 +11,7 @@ import pandas
 from entities.transaction import FinancialTransaction, TransactionType
 from entities.account import Account, AccountType
 from datetime import datetime
-import normalization
+import banks.normalization as normalization
 import base_v2
 
 # Set up logging

@@ -7,7 +7,7 @@ import json
 import pandas
 from entities.account import AccountType
 import base_v2
-import normalization
+import banks.normalization as normalization
 from helpers import (
     generate_dynamic_relationship,
     listToDict,
@@ -17,7 +17,7 @@ from helpers import (
     build_transactions_context_from_df,
     CSV_FIELDNAMES
 )
-
+import banks.banks
 
 def register_routes(app, fireflyIII):
     """Register all routes with the Flask application.
@@ -126,8 +126,8 @@ def register_routes(app, fireflyIII):
                     function_name = f"elaborate_{account.account_type.value}_{account.bank.lower()}"
                     
                     # Validate function exists before calling
-                    if hasattr(base_v2, function_name):
-                        elaborate_single_account = getattr(base_v2, function_name)
+                    if hasattr(banks, function_name):
+                        elaborate_single_account = getattr(banks, function_name)
                         list_transactions = elaborate_single_account(account, config)
                         transactions.extend(list_transactions)
                     else:
@@ -137,8 +137,8 @@ def register_routes(app, fireflyIII):
                     function_name = f"elaborate_{AccountType.PAYPAL.value}"
                     
                     # Validate function exists before calling
-                    if hasattr(base_v2, function_name):
-                        elaborate_single_account = getattr(base_v2, function_name)
+                    if hasattr(banks, function_name):
+                        elaborate_single_account = getattr(banks, function_name)
                         list_transactions = elaborate_single_account(account, config)
                         transactions.extend(list_transactions)
                     else:
