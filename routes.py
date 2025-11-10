@@ -1,5 +1,5 @@
 """Route handlers for the Flask application."""
-from flask import render_template, request, redirect, send_file
+from flask import render_template, request, redirect, send_file, jsonify
 from datetime import datetime
 import os
 import csv
@@ -351,3 +351,18 @@ def register_routes(app, fireflyIII):
         transactions_dict, categories = build_transactions_context_from_df(df, fireflyIII)
         return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
 
+    @app.route('/api/banks_with_checking_account')
+    def banks_with_checking_account():
+        import json
+        with open('config.json') as f:
+            config = json.load(f)
+        banks = [bank for bank in config if 'checking_account' in config[bank]]
+        return jsonify(banks)
+    
+    @app.route('/api/banks_with_prepaid_account')
+    def banks_with_prepaid_account():
+        import json
+        with open('config.json') as f:
+            config = json.load(f)
+        banks = [bank for bank in config if 'prepaid_card' in config[bank]]
+        return jsonify(banks)

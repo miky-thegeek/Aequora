@@ -64,8 +64,31 @@
     </div>
 
     <script>
-        const bancaOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'PostePay'];
+        // banksCheckingAccountOptions and banksPrepaidOptions will be populated dynamically from a secure Flask endpoint
+        let banksCheckingAccountOptions = [];
+        let banksPrepaidOptions = [];
         let checkingAccountCount = 0;
+
+        // Fetch bank list from Flask endpoint (not config.json directly)
+        fetch('/api/banks_with_checking_account')
+            .then(response => response.json())
+            .then(banks => {
+                banksCheckingAccountOptions = banks;
+            })
+            .catch(err => {
+                // fallback to default if fetch fails
+                banksCheckingAccountOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'PostePay'];
+            });
+        
+        fetch('/api/banks_with_prepaid_account')
+            .then(response => response.json())
+            .then(banks => {
+                banksPrepaidOptions = banks;
+            })
+            .catch(err => {
+                // fallback to default if fetch fails
+                banksCheckingAccountOptions = ['Intesa Sanpaolo', 'Unicredit', 'Banco BPM', 'Banca Sella', 'PostePay'];
+            });
 
         function showForm(formId) {
             document.getElementById('newSessionForm').classList.add('hidden');
@@ -73,11 +96,24 @@
             document.getElementById(formId).classList.remove('hidden');
         }
 
-        function createBancaSelect(name) {
+        function createBanksCheckingAccountSelect(name) {
             const select = document.createElement('select');
             select.name = name;
             select.required = true;
-            bancaOptions.forEach(banca => {
+            banksCheckingAccountOptions.forEach(banca => {
+                const option = document.createElement('option');
+                option.value = banca;
+                option.textContent = banca;
+                select.appendChild(option);
+            });
+            return select;
+        }
+
+        function createBanksPrepaidAccountSelect(name) {
+            const select = document.createElement('select');
+            select.name = name;
+            select.required = true;
+            banksPrepaidOptions.forEach(banca => {
                 const option = document.createElement('option');
                 option.value = banca;
                 option.textContent = banca;
@@ -126,8 +162,13 @@
 
             div.innerHTML = html;
 
-            if (type === 'checkingAccount' || type === 'prepaidCard') {
-                const bancaSelect = createBancaSelect(`${id}_bank`);
+            if (type === 'checkingAccount') {
+                const bancaSelect = createBanksCheckingAccountSelect(`${id}_bank`);
+                div.appendChild(bancaSelect);
+            }
+
+            if (type === 'prepaidCard') {
+                const bancaSelect = createBanksPrepaidAccountSelect(`${id}_bank`);
                 div.appendChild(bancaSelect);
             }
 
