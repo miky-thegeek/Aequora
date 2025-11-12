@@ -356,7 +356,11 @@ def register_routes(app, fireflyIII):
         import json
         with open('config.json') as f:
             config = json.load(f)
-        banks = [bank for bank in config if 'checking_account' in config[bank]]
+        banks = []
+        for bank in config:
+            if 'checking_account' in config[bank]:
+                banks.append({'id': bank, 'friendly_name': config[bank].get('friendly_name', bank)})
+        #banks = [bank for bank in config if 'checking_account' in config[bank]]
         return jsonify(banks)
     
     @app.route('/api/banks_with_prepaid_account')
@@ -364,5 +368,9 @@ def register_routes(app, fireflyIII):
         import json
         with open('config.json') as f:
             config = json.load(f)
-        banks = [bank for bank in config if 'prepaid_card' in config[bank]]
+        banks = []
+        for bank in config: 
+            if 'prepaid_card' in config[bank]:
+                banks.append({'id': bank, 'friendly_name': config[bank].get('friendly_name', bank)})
+        #banks = [bank for bank in config if 'prepaid_card' in config[bank]]
         return jsonify(banks)

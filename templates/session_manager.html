@@ -102,8 +102,8 @@
             select.required = true;
             banksCheckingAccountOptions.forEach(banca => {
                 const option = document.createElement('option');
-                option.value = banca;
-                option.textContent = banca;
+                option.value = banca['id'];
+                option.textContent = banca['friendly_name'];
                 select.appendChild(option);
             });
             return select;
@@ -115,8 +115,8 @@
             select.required = true;
             banksPrepaidOptions.forEach(banca => {
                 const option = document.createElement('option');
-                option.value = banca;
-                option.textContent = banca;
+                option.value = banca['id'];
+                option.textContent = banca['friendly_name'];
                 select.appendChild(option);
             });
             return select;

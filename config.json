@@ -1,5 +1,21 @@
 {
-    "PostePay": {
+    "PayPal": {
+        "friendly_name": "PayPal",
+        "file_extension": "csv",
+        "pandas_read_params": {
+            "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
+        },
+        "normalizationFunction": "normalizePayPal",
+        "fields": {
+            "amount": 6,
+            "date": 1,
+            "time": 2,
+            "destination": 12,
+            "source": 13
+        }
+    },
+    "postepay": {
+        "friendly_name": "PostePay",
         "prepaid_card": {
             "file_extension": "xlsx",
             "pandas_read_params": {
@@ -14,7 +30,22 @@
             }
         }
     },
-    "Unicredit": {
+    "revolut_it": {
+        "friendly_name": "Revolut Italia",
+        "checking_account": {
+            "file_extension": "csv",
+            "pandas_read_params": {
+                "decimal":".", "sep":",", "parse_dates":[2], "dayfirst":false
+            },
+            "fields": {
+                "amount": 6,
+                "date": 3,
+                "destination": 5
+            }
+        }
+    },
+    "unicredit": {
+        "friendly_name": "Unicredit",
         "checking_account": {
             "file_extension": "csv",
             "pandas_read_params": {
@@ -40,19 +71,6 @@
                 "destination": 4
             }
         }
-    },
-    "PayPal": {
-        "file_extension": "csv",
-        "pandas_read_params": {
-            "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
-        },
-        "normalizationFunction": "normalizePayPal",
-        "fields": {
-            "amount": 6,
-            "date": 1,
-            "time": 2,
-            "destination": 12,
-            "source": 13
-        }
     }
+    
 }
