@@ -41,7 +41,7 @@ def register_routes(app, fireflyIII):
             return redirect(fireflyIII.startAuth())
         return render_template('session_manager.html')
 
-    @app.route('/new_session', methods=['POST'])
+    @app.route('/new_session', methods=['POST', 'GET'])
     def new_session():
         """Handle new session creation.
         
@@ -52,6 +52,9 @@ def register_routes(app, fireflyIII):
             Response: Error response if validation fails, otherwise renders
                      list_transaction.html template with transactions and categories.
         """
+        if request.method == 'GET':
+            return redirect('/')
+        
         if not fireflyIII.checkAccessToken():
             return redirect(fireflyIII.startAuth())
         

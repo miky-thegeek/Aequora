@@ -85,6 +85,7 @@
                 <th scope="col">Descrizione</th>
                 <th scope="col">Ammontare</th>
                 <th scope="col">Categoria</th>
+                <th scope="col"></th>
             </tr>
         </thead>
         <tbody id="transactionTableBody">
@@ -128,6 +129,9 @@
                             {% endfor %}
                         </select>
                         <span class="old-value">Spese</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm delete-row-btn" onclick="deleteTransactionRow(this)"><i class="bi bi-trash"></i> Elimina</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -330,6 +334,12 @@
                 }
             });
         });
+
+        function deleteTransactionRow(btn) {
+            // Remove the row from the DOM
+            const row = btn.closest('tr');
+            if (row) row.remove();
+        }
     </script>
 </body>
 </html>
