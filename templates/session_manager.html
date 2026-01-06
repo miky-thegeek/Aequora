@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Sessioni</title>
+    <title>Aequora - Transaction Importer</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .hidden { display: none; }
@@ -17,7 +17,8 @@
     </style>
 </head>
 <body>
-    <h1>Gestione delle Sessioni</h1>
+    <h1>Aequora - Transaction Importer</h1>
+    <h2>Session Manager</h2>
 
     <button onclick="showForm('newSessionForm')">Inizia una nuova sessione</button>
     <button onclick="showForm('continueSessionForm')">Continua una sessione precedente</button>
@@ -69,7 +70,7 @@
         let banksPrepaidOptions = [];
         let checkingAccountCount = 0;
 
-        // Fetch bank list from Flask endpoint (not config.json directly)
+        // Fetch bank list from Flask endpoint (not banks.json directly)
         fetch('/api/banks_with_checking_account')
             .then(response => response.json())
             .then(banks => {

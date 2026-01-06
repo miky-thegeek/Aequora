@@ -64,12 +64,12 @@ def register_routes(app, fireflyIII):
         
         # Safe config file loading
         try:
-            with open('config.json', 'r') as file:
+            with open('banks.json', 'r') as file:
                 config = json.load(file)
         except FileNotFoundError:
-            return "Error: config.json file not found", 500
+            return "Error: banks.json file not found", 500
         except json.JSONDecodeError as e:
-            return f"Error: Invalid JSON in config.json: {e}", 500
+            return f"Error: Invalid JSON in banks.json: {e}", 500
         except Exception as e:
             return f"Error loading config: {e}", 500
 
@@ -357,7 +357,7 @@ def register_routes(app, fireflyIII):
     @app.route('/api/banks_with_checking_account')
     def banks_with_checking_account():
         import json
-        with open('config.json') as f:
+        with open('banks.json') as f:
             config = json.load(f)
         banks = []
         for bank in config:
@@ -369,7 +369,7 @@ def register_routes(app, fireflyIII):
     @app.route('/api/banks_with_prepaid_account')
     def banks_with_prepaid_account():
         import json
-        with open('config.json') as f:
+        with open('banks.json') as f:
             config = json.load(f)
         banks = []
         for bank in config: 

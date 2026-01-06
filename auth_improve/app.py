@@ -88,12 +88,12 @@ def new_session():
     
     # Safe config file loading
     try:
-        with open('config.json', 'r') as file:
+        with open('banks.json', 'r') as file:
             config = json.load(file)
     except FileNotFoundError:
-        return "Error: config.json file not found", 500
+        return "Error: banks.json file not found", 500
     except json.JSONDecodeError as e:
-        return f"Error: Invalid JSON in config.json: {e}", 500
+        return f"Error: Invalid JSON in banks.json: {e}", 500
     except Exception as e:
         return f"Error loading config: {e}", 500
 

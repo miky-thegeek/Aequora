@@ -1,6 +1,6 @@
-# FireflyIII Transaction Importer
+# Aequora - Transaction Importer
 
-A modular Flask-based web application for importing and processing financial transactions from multiple bank accounts and payment providers into [FireflyIII](https://www.firefly-iii.org/), a personal finance manager.
+A modular Flask-based web application for importing and processing financial transactions from multiple bank accounts and payment providers into personal finance managers. Currently supports integration with [FireflyIII](https://www.firefly-iii.org/), with extensible architecture for additional finance managers.
 
 ## Features
 
@@ -44,7 +44,7 @@ import_transaction/
 │   ├── session_manager.html    # Main session management interface
 │   └── list_transaction.html   # Transaction list and editing interface
 │
-├── config.json                 # Bank configuration and field mappings
+├── banks.json                 # Bank configuration and field mappings
 ├── certs/                      # SSL certificates for HTTPS
 └── upload/                     # Temporary file upload directory
 ```
@@ -55,12 +55,12 @@ import_transaction/
 - **Bank-Specific Processors**: Each bank/provider has its own processor module in the `banks/` folder, making it easy to add new banks
 - **Entity Models**: Domain models are isolated in the `entities/` package
 - **Helper Functions**: Reusable utility functions are centralized in `helpers.py`
-- **Configuration-Driven**: Bank-specific settings (field mappings, file formats) are defined in `config.json`
+- **Configuration-Driven**: Bank-specific settings (field mappings, file formats) are defined in `banks.json`
 
 #### Transaction Processing Pipeline
 
 1. **File Input** → Bank-specific file format (CSV/XLSX)
-2. **Data Loading** → Pandas DataFrame using `config.json` parameters
+2. **Data Loading** → Pandas DataFrame using `banks.json` parameters
 3. **Normalization** → Bank-specific normalization functions
 4. **Account Matching** → Cross-account transaction matching
 5. **Transaction Extraction** → Bank-specific pattern recognition
@@ -88,6 +88,7 @@ import_transaction/
 - Environment variables:
   - `fireflyIII_id`: OAuth2 client ID from FireflyIII
   - `fireflyIII_secret`: OAuth2 client secret from FireflyIII
+  - `fireflyIII_url`: The URL of your FireflyIII instance
 
 ## Installation
 
@@ -117,6 +118,7 @@ import_transaction/
    ```bash
    export fireflyIII_id="your_client_id"
    export fireflyIII_secret="your_client_secret"
+   export fireflyIII_url="https://your-fireflyiii-instance.com"
    ```
 
 6. **Configure FireflyIII OAuth2**:
@@ -126,7 +128,7 @@ import_transaction/
 
 ## Configuration
 
-The `config.json` file defines how to process files from different banks and payment providers. Each bank/provider entry contains:
+The `banks.json` file defines how to process files from different banks and payment providers. Each bank/provider entry contains:
 
 - **friendly_name**: Display name for the bank
 - **file_extension**: Supported file format (`csv` or `xlsx`)
@@ -164,7 +166,7 @@ The `config.json` file defines how to process files from different banks and pay
 }
 ```
 
-To add a new bank, simply add a new entry to `config.json` following the same structure, and create a corresponding processor function in the `banks/` folder.
+To add a new bank, simply add a new entry to `banks.json` following the same structure, and create a corresponding processor function in the `banks/` folder.
 
 ## Usage
 
@@ -208,7 +210,7 @@ The **New Session** function processes uploaded bank files and extracts transact
      - Associated account (for debit cards)
 2. **File Processing**:
    - Files are validated and temporarily saved
-   - Each file is read using bank-specific configuration from `config.json`
+   - Each file is read using bank-specific configuration from `banks.json`
    - Data normalization is applied (if configured)
    - A "Found" flag column is added to track matched transactions
 3. **Account Relationship Generation**:
@@ -293,7 +295,7 @@ The **Reprocess** button allows you to re-run enrichment and duplicate checking 
 
 If you encounter issues or have questions:
 
-1. **Check the Configuration**: Ensure `config.json` is properly formatted and matches your bank file structure
+1. **Check the Configuration**: Ensure `banks.json` is properly formatted and matches your bank file structure
 2. **Verify Environment Variables**: Confirm that `fireflyIII_id` and `fireflyIII_secret` are set correctly
 3. **Check SSL Certificates**: Ensure `certs/server.crt` and `certs/server.key` exist and are valid
 4. **Review Logs**: Check console output for error messages and warnings
@@ -307,7 +309,7 @@ When reporting issues, please include:
 - Error messages or stack traces
 - Steps to reproduce the issue
 - Sample file structure (without sensitive data)
-- Relevant configuration from `config.json`
+- Relevant configuration from `banks.json`
 
 ### Contributing
 
@@ -316,7 +318,7 @@ Contributions are welcome! To contribute:
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/new-bank-support`
 3. **Add your changes**:
-   - For new banks: Add configuration to `config.json` and create a processor in `banks/`
+   - For new banks: Add configuration to `banks.json` and create a processor in `banks/`
    - For bug fixes: Ensure backward compatibility
    - Follow existing code style and add docstrings
 4. **Test your changes**: Verify that existing functionality still works
@@ -326,7 +328,7 @@ Contributions are welcome! To contribute:
 
 To add support for a new bank:
 
-1. **Add configuration** to `config.json`:
+1. **Add configuration** to `banks.json`:
    ```json
    "new_bank": {
        "friendly_name": "New Bank",
