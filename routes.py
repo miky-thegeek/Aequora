@@ -252,7 +252,7 @@ def register_routes(app, fireflyIII):
                      CSV file as attachment for download.
         """
         grouped_data = parse_form_grouped(request.form)
-        print(grouped_data.items())
+        #print(grouped_data.items())
         csv_rows = csv_rows_from_grouped(grouped_data)
 
         filePrefix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')

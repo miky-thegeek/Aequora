@@ -1,6 +1,6 @@
 from entities.transaction import FinancialTransaction, TransactionType
 
-def elaborate_checking_account_revolut_it(account, config):
+def elaborate_checking_account_revolut_en(account, config):
     print("Elaborating Revolut Italia checking account transactions...")
     transactions = []
     fields_account = config.get(account.bank).get(account.account_type.value).get('fields')

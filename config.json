@@ -44,6 +44,20 @@
             }
         }
     },
+    "revolut_en": {
+        "friendly_name": "Revolut Inglese",
+        "checking_account": {
+            "file_extension": "csv",
+            "pandas_read_params": {
+                "decimal":".", "sep":",", "parse_dates":[2], "dayfirst":false
+            },
+            "fields": {
+                "amount": 6,
+                "date": 3,
+                "destination": 5
+            }
+        }
+    },
     "unicredit": {
         "friendly_name": "Unicredit",
         "checking_account": {
