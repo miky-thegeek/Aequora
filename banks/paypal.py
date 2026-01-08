@@ -64,10 +64,15 @@ def elaborate_paypal(account, config):
                 transactionType = TransactionType.DEPOSIT
                 sourceAccount = destination_account
                 destinationAccount = source_account
+                if pandas.isna(destinationAccount) or destinationAccount.strip() == "":
+                    destinationAccount = "PayPal"
             else:
                 transactionType = TransactionType.WITHDRAWAL
                 destinationAccount = destination_account
                 sourceAccount = source_account
+                if pandas.isna(sourceAccount) or sourceAccount.strip() == "":
+                    sourceAccount = "PayPal"
+            #print(f"Creating transaction PayPal: {transactionType} of {abs(amount_account)} EUR on {date_account} from {sourceAccount} to {destinationAccount}")
             transaction = FinancialTransaction(
                 transaction_type=transactionType,
                 date=date_account,

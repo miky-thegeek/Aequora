@@ -356,7 +356,7 @@ class FireflyIII:
                  or {"data": []} on error.
         """
         if not accountID:
-            logger.warning("Empty accountID provided to getTransactionsOfAccount")
+            #logger.warning("Empty accountID provided to getTransactionsOfAccount")
             return {"data": []}
             
         try:
