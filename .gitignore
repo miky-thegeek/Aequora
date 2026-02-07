@@ -3,3 +3,4 @@ __pycache__/*
 upload/*
 compare.py
 .runapp
+security_analysis/*

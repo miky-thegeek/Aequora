@@ -1,3 +1,6 @@
+This project is licensed under the GNU Affero General Public License v3.0 (AGPLv3).
+See the LICENSE file for details.
+
 # Aequora - Transaction Importer
 
 A modular Flask-based web application for importing and processing financial transactions from multiple bank accounts and payment providers into personal finance managers. Currently supports integration with [FireflyIII](https://www.firefly-iii.org/), with extensible architecture for additional finance managers.
