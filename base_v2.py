@@ -67,6 +67,14 @@ def get_dataset(account, file_path, config, associated_bank=None):
         elif config["PayPal"]['file_extension'] == "xlsx":
             read_params = {"io": file_path}
         read_params.update(config["PayPal"]['pandas_read_params'])
+
+        if "converters" in read_params:
+            read_params["converters"] = {
+                col: str if conv == "str" else conv
+                for col, conv in read_params["converters"].items()
+            }
+
+
     else:
         bank = associated_bank or account.bank
         if config[bank][account.account_type.value]['file_extension'] == "csv":

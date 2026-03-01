@@ -179,4 +179,9 @@ def normalizeUnicredit(csvBank):
     """
     print("Normalizing Unicredit CSV data...")
     for lineBank in csvBank.itertuples():
-        csvBank.at[lineBank[0], 'Importo (EUR)'] = float(lineBank[4].replace('.', '').replace(',', '.'))
+        value = lineBank[4]
+
+        if isinstance(value, str):
+            value = float(value.replace('.', '').replace(',', '.'))
+        else:
+            value = float(value)

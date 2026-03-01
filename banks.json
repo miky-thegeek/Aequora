@@ -3,7 +3,7 @@
         "friendly_name": "PayPal",
         "file_extension": "csv",
         "pandas_read_params": {
-            "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}
+            "decimal":",", "low_memory":false, "parse_dates":[0, 1], "dayfirst":true, "date_format":{"Data": "%d/%m/%Y", "Ora": "%H:%M:%S"}, "converters": {"Nome": "str", "Nome banca": "str"}
         },
         "normalizationFunction": "normalizePayPal",
         "fields": {
