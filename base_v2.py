@@ -267,96 +267,103 @@ def compare_accounts(accounts, relationships, config):
                             date_a2_py = date_a2.to_pydatetime() if hasattr(date_a2, 'to_pydatetime') else date_a2
                             
                             next_business_day = compute_next_business_day.next_number_business_day(date_a1_py, 'IT', daysNumber)
-                            #print(f"Comparing transactions: A1 Date {date_a1_py}, A2 Date {date_a2_py}, Next Business Day {next_business_day}, Amount A1 {amount_a1}, Amount A2 {amount_a2}")
+                            #print(f"Comparing transactions: A1 Date {date_a1_py}, A2 Date {date_a2_py}, Next Business Day {next_business_day}, Amount A1 {amount_a1}, Amount A2 {amount_a2}, type amount_a1 {type(amount_a1)}, type amount_a2 {type(amount_a2)}")
                             #print(f"abs(amount_a1) == abs(amount_a2): {abs(amount_a1) == abs(amount_a2)}, next_business_day == date_a2_py: {next_business_day == date_a2_py}")
                             
                             if abs(amount_a1) == abs(amount_a2) and next_business_day == date_a2_py:
                                 #print(f"Potential match found between accounts {a1.id} and {a2.id} for amounts {amount_a1} and {amount_a2} on dates {date_a1_py} and {date_a2_py}")
                                 
                                 if (a1.account_type == AccountType.DEBIT_CARD and a2.account_type == AccountType.CHECKING_ACCOUNT) or (a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.DEBIT_CARD):
-                                    descPartsA1 = re.split(r'\s{2,}', destination_a1)
-                                    descPartsA2 = re.split(r'\s{2,}', destination_a2)
+                                    try:
+                                        descPartsA1 = re.split(r'\s{2,}', destination_a1)
+                                        descPartsA2 = re.split(r'\s{2,}', destination_a2)
 
-                                    if (len(descPartsA1) > 0 and len(descPartsA2) > 3 and descPartsA1[0] == descPartsA2[3]) or (len(descPartsA1) > 0 and len(descPartsA2) > 4 and descPartsA1[0] == descPartsA2[4]):
-                                        if amount_a1 > 0:
-                                            transactionType = TransactionType.DEPOSIT
-                                            sourceAccount = descPartsA1[0]
-                                            destinationAccount = bank_a1
-                                        else:
-                                            transactionType = TransactionType.WITHDRAWAL
-                                            destinationAccount = descPartsA1[0]
-                                            sourceAccount = bank_a1
+                                        if (len(descPartsA1) > 0 and len(descPartsA2) > 3 and descPartsA1[0] == descPartsA2[3]) or (len(descPartsA1) > 0 and len(descPartsA2) > 4 and descPartsA1[0] == descPartsA2[4]):
+                                            if amount_a1 > 0:
+                                                transactionType = TransactionType.DEPOSIT
+                                                sourceAccount = descPartsA1[0]
+                                                destinationAccount = bank_a1
+                                            else:
+                                                transactionType = TransactionType.WITHDRAWAL
+                                                destinationAccount = descPartsA1[0]
+                                                sourceAccount = bank_a1
 
-                                        if time_a1:
-                                            date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                                        elif time_a2:
-                                            date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
-                                        
-                                        transaction = FinancialTransaction(
-                                            transaction_type=transactionType,
-                                            date=date_a1,
-                                            currency_code="EUR",
-                                            amount=abs(amount_a1),
-                                            source_account=sourceAccount,
-                                            destination_account=destinationAccount
-                                        )
+                                            if time_a1:
+                                                date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                            elif time_a2:
+                                                date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                            
+                                            transaction = FinancialTransaction(
+                                                transaction_type=transactionType,
+                                                date=date_a1,
+                                                currency_code="EUR",
+                                                amount=abs(amount_a1),
+                                                source_account=sourceAccount,
+                                                destination_account=destinationAccount
+                                            )
 
-                                        transactions.append(transaction)
-                                        index_dict += 1
+                                            transactions.append(transaction)
+                                            index_dict += 1
 
-                                        indexesToDrop_a1.append(transaction_a1[0])
-                                        indexesToDrop_a2.append(transaction_a2[0])
-                                        found = True
-                                        a1.dataframe.at[transaction_a1[0], "Found"] = True
-                                        a2.dataframe.at[transaction_a2[0], "Found"] = True
-                                
+                                            indexesToDrop_a1.append(transaction_a1[0])
+                                            indexesToDrop_a2.append(transaction_a2[0])
+                                            found = True
+                                            a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                            a2.dataframe.at[transaction_a2[0], "Found"] = True
+                                    except Exception as e:
+                                        print(f"Error processing transaction comparison between DEBIT_CARD and CHECKING_ACCOUNT: {e}")
+                                    
                                 elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
-                                    if a1.account_type == AccountType.PAYPAL:
-                                        source = source_a1
-                                        destination = destination_a1
-                                        bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
-                                        destination_secondAccount = destination_a2
-                                        date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
-                                    elif a2.account_type == AccountType.PAYPAL:
-                                        source = source_a2
-                                        destination = destination_a2
-                                        destination_secondAccount = destination_a1
-                                        bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
-                                        date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                    try:
+                                        if a1.account_type == AccountType.PAYPAL:
+                                            source = source_a1
+                                            destination = destination_a1
+                                            bank_secondAccount = accounts.get(a2.id_associated_account).bank if a2.account_type == AccountType.DEBIT_CARD else a2.bank
+                                            destination_secondAccount = destination_a2
+                                            date = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                        elif a2.account_type == AccountType.PAYPAL:
+                                            source = source_a2
+                                            destination = destination_a2
+                                            destination_secondAccount = destination_a1
+                                            bank_secondAccount = accounts.get(a1.id_associated_account).bank if a1.account_type == AccountType.DEBIT_CARD else a1.bank
+                                            date = date_a2.replace(hour=time_a2.hour, minute=time_a2.minute)
 
-                                    #print(f"Comparing source '{source}' with bank '{bank_secondAccount}'")
-                                    #print(f"Comparing source '{source}' with destination second account '{destination_secondAccount}'")
+                                        #print(f"Comparing source '{source}' with bank '{bank_secondAccount}'")
+                                        #print(f"Comparing source '{source}' with destination second account '{destination_secondAccount}'")
 
-                                    #if source.lower().find(bank_secondAccount.lower()) > -1:
-                                    if destination_secondAccount.lower().find(source.lower()) > -1:
-                                        if amount_a1 > 0:
-                                            transactionType = TransactionType.DEPOSIT
-                                            sourceAccount = destination
-                                            destinationAccount = bank_secondAccount
-                                        else:
-                                            transactionType = TransactionType.WITHDRAWAL
-                                            destinationAccount = destination
-                                            sourceAccount = bank_secondAccount
-                                        #print(f"Creating transaction on compare_accounts: {transactionType} of {abs(amount_a1)} EUR on {date} from {sourceAccount} to {destinationAccount}")
-                                        transaction = FinancialTransaction(
-                                            transaction_type=transactionType,
-                                            date=date,
-                                            currency_code="EUR",
-                                            amount=abs(amount_a1),
-                                            source_account=sourceAccount,
-                                            destination_account=destinationAccount
-                                        )
+                                        #if source.lower().find(bank_secondAccount.lower()) > -1:
+                                        if destination_secondAccount.lower().find(source.lower()) > -1:
+                                            if amount_a1 > 0:
+                                                transactionType = TransactionType.DEPOSIT
+                                                sourceAccount = destination
+                                                destinationAccount = bank_secondAccount
+                                            else:
+                                                transactionType = TransactionType.WITHDRAWAL
+                                                destinationAccount = destination
+                                                sourceAccount = bank_secondAccount
+                                            #print(f"Creating transaction on compare_accounts: {transactionType} of {abs(amount_a1)} EUR on {date} from {sourceAccount} to {destinationAccount}")
+                                            transaction = FinancialTransaction(
+                                                transaction_type=transactionType,
+                                                date=date,
+                                                currency_code="EUR",
+                                                amount=abs(amount_a1),
+                                                source_account=sourceAccount,
+                                                destination_account=destinationAccount
+                                            )
 
-                                        transactions.append(transaction)
-                                        index_dict += 1
+                                            transactions.append(transaction)
+                                            index_dict += 1
 
-                                        found = True
-                                        indexesToDrop_a1.append(transaction_a1[0])
-                                        indexesToDrop_a2.append(transaction_a2[0])
-                                        a1.dataframe.at[transaction_a1[0], "Found"] = True
-                                        a2.dataframe.at[transaction_a2[0], "Found"] = True
+                                            found = True
+                                            indexesToDrop_a1.append(transaction_a1[0])
+                                            indexesToDrop_a2.append(transaction_a2[0])
+                                            a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                            a2.dataframe.at[transaction_a2[0], "Found"] = True
 
-                                        break
+                                            break
+                                    except Exception as e:
+                                        print(f"Error processing transaction comparison between DEBIT_CARD, PREPAID_CARD, CHECKING_ACCOUNT and PAYPAL: {e}")
+                                        continue
                         except Exception as e:
                             print(f"Error processing transaction comparison: {e}")
                             continue

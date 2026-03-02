@@ -38,6 +38,8 @@ def __is_holiday(date, code):
     """
     if "Festa della Liberazione" == holidays.country_holidays(code).get(date):
         return date
+    elif "Epifania" == holidays.country_holidays(code).get(date):
+        return date
     elif date in holidays.country_holidays(code):
         return __is_holiday(__next_day(date), code)
     elif date.weekday() in [5, 6]:

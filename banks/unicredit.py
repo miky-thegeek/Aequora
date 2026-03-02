@@ -178,10 +178,10 @@ def normalizeUnicredit(csvBank):
                                   with 'Importo (EUR)' column in European format.
     """
     print("Normalizing Unicredit CSV data...")
-    for lineBank in csvBank.itertuples():
-        value = lineBank[4]
-
-        if isinstance(value, str):
-            value = float(value.replace('.', '').replace(',', '.'))
-        else:
-            value = float(value)
+    csvBank["Importo (EUR)"] = (
+    csvBank["Importo (EUR)"]
+        .astype(str)
+        .str.replace('.', '', regex=False)
+        .str.replace(',', '.', regex=False)
+        .astype(float)
+)

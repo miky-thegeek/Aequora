@@ -340,6 +340,47 @@
             const row = btn.closest('tr');
             if (row) row.remove();
         }
+
+        // --- Firefly III account autocomplete helpers ---
+        function updateAccountDatalist(data) {
+            const datalist = $('#accountList');
+            datalist.empty();
+            data.forEach(function(acc) {
+                // store id in data-id attribute for later lookup
+                datalist.append(`<option data-id="${acc.id}" value="${acc.name}">`);
+            });
+        }
+
+        // listen for user input and fetch suggestions after 3 characters
+        $(document).on('input', '.track-changeAccount', function() {
+            const input = $(this);
+            const val = input.val();
+            if (val.length < 3) {
+                return;
+            }
+            // determine type based on field name prefix
+            const field = input.attr('name');
+            const type = field.indexOf('source') === 0 ? 'Revenue account' : 'Expense account';
+            $.get('/autocomplete_accounts', { q: val, type: type }, function(resp) {
+                // resp should be array of {id,name}
+                input.data('suggestions', resp);
+                updateAccountDatalist(resp);
+            });
+        });
+
+        // when value is chosen/changed, try to match a suggestion and set hidden id
+        $(document).on('change', '.track-changeAccount', function() {
+            const input = $(this);
+            const val = input.val();
+            const suggestions = input.data('suggestions') || [];
+            const match = suggestions.find(a => a.name === val);
+            const hidden = input.closest('div').find('input[type=hidden]');
+            if (match) {
+                hidden.val(match.id);
+            } else {
+                hidden.val('None');
+            }
+        });
     </script>
 </body>
 </html>

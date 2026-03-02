@@ -115,9 +115,12 @@ def register_routes(app, fireflyIII):
                     associated_bank = None
 
                 df = base_v2.get_dataset(account, fileAccountPath, config, associated_bank)
+                #print(f"Initial DataFrame for account {account.id}:")
+                #print(df.head().map(lambda x: f"{x} ({type(x).__name__})"))
                 normalization_fn = base_v2.get_normalization_function(account, config, normalization, associated_bank)
                 df = base_v2.process_dataframe(df, normalization_fn)
-                
+                #print(f"Processed DataFrame for account {account.id}:")
+                #print(df.head().map(lambda x: f"{x} ({type(x).__name__})"))
                 account.setDataframe(df)
                 
                 # Safe file removal
@@ -367,6 +370,32 @@ def register_routes(app, fireflyIII):
         df = dataframe_from_grouped(grouped_data)
         transactions_dict, categories = build_transactions_context_from_df(df, fireflyIII)
         return render_template('list_transaction.html', transactions=transactions_dict, categories=categories)
+
+    @app.route('/autocomplete_accounts')
+    def autocomplete_accounts():
+        """AJAX endpoint to suggest FireflyIII accounts based on partial name.
+
+        Query params:
+            q: user-typed string (minimum 3 characters)
+            type: account category hint (e.g. 'Revenue account' or 'Expense account')
+        """
+        q = request.args.get('q', '')
+        acc_type = request.args.get('type', '')
+        if not q or len(q) < 3:
+            return jsonify([])
+        if not fireflyIII.checkAccessToken():
+            return jsonify([])
+        try:
+            accounts = fireflyIII.autocompleteAccounts(q, acc_type)
+            result = []
+            for acc in accounts:
+                name = ''
+                if isinstance(acc, dict):
+                    name = acc.get('attributes', {}).get('name') or acc.get('name', '')
+                result.append({'id': acc.get('id'), 'name': name})
+            return jsonify(result)
+        except Exception:
+            return jsonify([])
 
     @app.route('/api/banks_with_checking_account')
     def banks_with_checking_account():
