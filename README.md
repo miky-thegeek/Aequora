@@ -16,6 +16,8 @@ A modular Flask-based web application for importing and processing financial tra
 - **Reprocessing**: Re-run transaction enrichment and duplicate checks on existing data
 - **Modern Web Interface**: Clean, responsive UI for managing transaction imports
 
+![Session Manager](images/session_manager.png)
+
 ## Project Structure
 
 This project follows a modular architecture for maintainability and extensibility:
