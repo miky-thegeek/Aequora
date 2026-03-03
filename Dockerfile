@@ -1,0 +1,26 @@
+# Dockerfile for Aequora transaction importer
+
+# Use official Python base image
+FROM python:3.11-slim
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies (if any)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and source
+COPY . /app
+
+# Create a virtual environment (optional) and install python packages
+RUN python -m pip install --upgrade pip \
+    && pip install flask pandas openpyxl python-dateutil holidays oauthlib requests
+
+# Expose port if needed
+EXPOSE 8443
+
+# Default command
+CMD ["python", "app.py"]

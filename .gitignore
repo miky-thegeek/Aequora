@@ -4,3 +4,4 @@ upload/*
 compare.py
 .runapp
 security_analysis/*
+.env

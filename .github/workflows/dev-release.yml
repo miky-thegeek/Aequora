@@ -1,0 +1,46 @@
+name: Scheduled Dev Release
+
+on:
+  schedule:
+    # 04:00 UTC corrisponde alle 05:00 italiane (CET)
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Per testarlo manualmente quando vuoi
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Necessario per creare la release e caricare file
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Zip Package
+        run: |
+          zip -r dev-release.zip \
+          banks/ entities/ templates/ upload/ \
+          app.py banks.json base_v2.py compare.py \
+          compute_next_business_day.py config.py firefly_iii.py \
+          helpers.py normalization.py LICENSE README.md routes.py \
+          docker-compose.dev.yml Dockerfile
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-${{ steps.date.outputs.date }}
+          name: Dev Release ${{ steps.date.outputs.date }}
+          body: |
+            ### 🛠 Automated Dev Build
+            Data: ${{ steps.date.outputs.date }}
+            
+            Questa release include i file sorgente e le risorse necessarie per l'ambiente di sviluppo.
+          draft: false
+          prerelease: true
+          files: dev-release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

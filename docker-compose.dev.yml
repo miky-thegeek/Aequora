@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  aequora:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.11   # build argument example (if needed)
+    ports:
+      - "8443:8443"
+    environment:
+      - fireflyIII_id=${FIREFLYIII_ID}
+      - fireflyIII_secret=${FIREFLYIII_SECRET}
+      - fireflyIII_url=${FIREFLYIII_URL}
+    volumes:
+      - .:/app
+    restart: unless-stopped
