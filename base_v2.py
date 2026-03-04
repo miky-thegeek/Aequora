@@ -236,6 +236,7 @@ def compare_accounts(accounts, relationships, config):
             amount_a1 = transaction_a1[fields_a1.get('amount')]
             date_a1 = transaction_a1[fields_a1.get('date')]
             destination_a1 = transaction_a1[fields_a1.get('destination')]
+            time_a1 = None
             if fields_a1.get('time'):
                 time_a1 = transaction_a1[fields_a1.get('time')]
             if fields_a1.get('source'):
@@ -255,6 +256,7 @@ def compare_accounts(accounts, relationships, config):
                     amount_a2 = transaction_a2[fields_a2.get('amount')]
                     date_a2 = transaction_a2[fields_a2.get('date')]
                     destination_a2 = transaction_a2[fields_a2.get('destination')]
+                    time_a2 = None
                     if fields_a2.get('time'):
                         time_a2 = transaction_a2[fields_a2.get('time')]
                     if fields_a2.get('source'):
@@ -265,6 +267,9 @@ def compare_accounts(accounts, relationships, config):
                         try:
                             date_a1_py = date_a1.to_pydatetime() if hasattr(date_a1, 'to_pydatetime') else date_a1
                             date_a2_py = date_a2.to_pydatetime() if hasattr(date_a2, 'to_pydatetime') else date_a2
+
+                            date_a1_py = date_a1_py.replace(hour=0, minute=0, second=0, microsecond=0)
+                            date_a2_py = date_a2_py.replace(hour=0, minute=0, second=0, microsecond=0)
                             
                             next_business_day = compute_next_business_day.next_number_business_day(date_a1_py, 'IT', daysNumber)
                             #print(f"Comparing transactions: A1 Date {date_a1_py}, A2 Date {date_a2_py}, Next Business Day {next_business_day}, Amount A1 {amount_a1}, Amount A2 {amount_a2}, type amount_a1 {type(amount_a1)}, type amount_a2 {type(amount_a2)}")
@@ -312,7 +317,41 @@ def compare_accounts(accounts, relationships, config):
                                             a2.dataframe.at[transaction_a2[0], "Found"] = True
                                     except Exception as e:
                                         print(f"Error processing transaction comparison between DEBIT_CARD and CHECKING_ACCOUNT: {e}")
+
+                                elif a1.account_type == AccountType.CHECKING_ACCOUNT and a2.account_type == AccountType.CHECKING_ACCOUNT:
+
+                                    try:
+
+                                        transactionType = TransactionType.TRANSFER
+                                        sourceAccount = bank_a1
+                                        destinationAccount = a2.bank
+
+                                        if time_a1 is not None:
+                                            date_a1 = date_a1.replace(hour=time_a1.hour, minute=time_a1.minute)
+                                        elif time_a2 is not None:
+                                            date_a1 = date_a1.replace(hour=time_a2.hour, minute=time_a2.minute)
+                                        
+                                        transaction = FinancialTransaction(
+                                            transaction_type=transactionType,
+                                            date=date_a1,
+                                            currency_code="EUR",
+                                            amount=abs(amount_a1),
+                                            source_account=sourceAccount,
+                                            destination_account=destinationAccount
+                                        )
+
+                                        transactions.append(transaction)
+                                        index_dict += 1
+
+                                        indexesToDrop_a1.append(transaction_a1[0])
+                                        indexesToDrop_a2.append(transaction_a2[0])
+                                        found = True
+                                        a1.dataframe.at[transaction_a1[0], "Found"] = True
+                                        a2.dataframe.at[transaction_a2[0], "Found"] = True
                                     
+                                    except Exception as e:
+                                        print(f"Error processing transaction comparison between CHECKING_ACCOUNT and CHECKING_ACCOUNT: {e}")
+
                                 elif (a1.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD] and a2.account_type == AccountType.PAYPAL) or (a1.account_type == AccountType.PAYPAL and a2.account_type in [AccountType.DEBIT_CARD, AccountType.CHECKING_ACCOUNT, AccountType.PREPAID_CARD]):
                                     try:
                                         if a1.account_type == AccountType.PAYPAL:

@@ -51,13 +51,17 @@ def generate_dynamic_relationship(accounts):
             elif t1 == AccountType.PAYPAL and t2 == AccountType.CHECKING_ACCOUNT:
                 relazioni.append((a1.id, a2.id, [0, 1, 2, 3]))
 
-            # Regola 2: paypal → prepagata
+            # Regola 3: paypal → prepagata
             elif t1 == AccountType.PAYPAL and t2 == AccountType.PREPAID_CARD:
                 relazioni.append((a1.id, a2.id, [-1, 0, 1]))
 
-            # Regola 3: prepagata → conto
+            # Regola 4: prepagata → conto
             elif t1 == AccountType.PREPAID_CARD and t2 == AccountType.CHECKING_ACCOUNT:
                 relazioni.append((a1.id, a2.id, [1]))
+            
+            # Regola 5: conto → conto (es. trasferimenti tra conti)
+            elif t1 == AccountType.CHECKING_ACCOUNT and t2 == AccountType.CHECKING_ACCOUNT and not any((r[0] == a1.id and r[1] == a2.id) or (r[0] == a2.id and r[1] == a1.id) for r in relazioni):
+                relazioni.append((a1.id, a2.id, [0]))
 
             # Altri casi personalizzabili qui...
     
