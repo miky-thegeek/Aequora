@@ -16,7 +16,11 @@ A modular Flask-based web application for importing and processing financial tra
 - **Reprocessing**: Re-run transaction enrichment and duplicate checks on existing data
 - **Modern Web Interface**: Clean, responsive UI for managing transaction imports
 
-![Session Manager](images/session_manager.png)
+## Screens
+<p align="center">
+<img src="images/session_manager.png" height="600" alt="Session manager"/><br><br>
+<img src="images/transactions.png"/>
+</p>
 
 ## Project Structure
 
@@ -200,6 +204,26 @@ For production, consider using a WSGI server like Gunicorn:
 gunicorn --bind 0.0.0.0:8443 --certfile certs/server.crt --keyfile certs/server.key app:app
 ```
 **Note**: The application requires HTTPS for OAuth2 to work properly. Ensure your SSL certificates are valid and properly configured.
+
+### Development with Docker Compose
+
+The repository includes a `docker-compose.dev.yml` geared for development. It builds the image and mounts the source for live editing.
+
+1. **Prepare env vars** – create an `.env` file or export the following:
+   ```bash
+   FIREFLYIII_ID=...
+   FIREFLYIII_SECRET=...
+   FIREFLYIII_URL=https://your-fireflyiii
+   ```
+2. **Build & start the container**:
+   ```bash
+   docker-compose -f docker-compose.dev.yml up --build
+   ```
+3. **Open the UI** at `https://localhost:8443` (accept certificate warning).
+
+The service maps port 8443 and will restart automatically if it crashes. The current directory is mounted into `/app` for rapid iteration.
+
+For a production-ready container configuration, remove the volume mount and switch to a tagged image or multi-stage build.
 
 ### New Session Workflow
 
