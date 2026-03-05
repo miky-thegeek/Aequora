@@ -40,4 +40,5 @@ if __name__ == "__main__":
         exit(1)
     
     context = (cert_file, key_file)
-    app.run(host='0.0.0.0', port=8443, debug=True, ssl_context=context)
+    debug=os.getenv('FLASK_DEBUG', 'False') == 'True'
+    app.run(host='0.0.0.0', port=8443, debug=debug, ssl_context=context)

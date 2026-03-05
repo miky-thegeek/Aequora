@@ -1,0 +1,8 @@
+flask
+pandas
+openpyxl
+python-dateutil
+holidays
+oauthlib
+requests
+gunicorn

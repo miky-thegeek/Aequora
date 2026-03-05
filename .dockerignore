@@ -1,8 +1,10 @@
-__pycache__/*
+.git
+__pycache__
 *.pyc
+.env
+venv/
 upload/*
 compare.py
 .runapp
 security_analysis/*
-.env
 git_history.txt

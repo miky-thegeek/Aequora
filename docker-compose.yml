@@ -4,16 +4,14 @@ services:
   aequora:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
       args:
         - PYTHON_VERSION=3.11   # build argument example (if needed)
     ports:
-      - "8443:8443"
+      - "5000:5000"
     environment:
       - fireflyIII_id=${FIREFLYIII_ID}
       - fireflyIII_secret=${FIREFLYIII_SECRET}
       - fireflyIII_url=${FIREFLYIII_URL}
-      - FLASK_DEBUG=${FLASK_DEBUG:-True}  # default to True for development
-    volumes:
-      - .:/app
+      - FLASK_DEBUG=${FLASK_DEBUG:-False}  # default to False for production
     restart: unless-stopped
