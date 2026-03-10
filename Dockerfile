@@ -3,6 +3,9 @@
 # Use official Python base image
 FROM python:3.11-slim
 
+# Set environment variable to allow insecure transport for OAuth2 (for local/private IPs)
+ENV OAUTHLIB_INSECURE_TRANSPORT=1
+
 # Set work directory
 WORKDIR /app
 
@@ -22,8 +25,10 @@ RUN python -m pip install --upgrade pip \
 COPY . .
 
 # Expose port if needed
-EXPOSE 5000
+#EXPOSE ${APP_PORT:-8443}
 
 # Default command
 # Usiamo Gunicorn per eseguire l'app Flask in produzione
-CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]
+#CMD ["gunicorn", "--workers", "4", "--bind", "${APP_HOST}:${APP_PORT}", "--keyfile", "certs/server.key", "--certfile", "certs/server.crt", "app:app"]
+
+CMD gunicorn --workers 4 --bind 0.0.0.0:${APP_PORT} --keyfile certs/server.key --certfile certs/server.crt app:app

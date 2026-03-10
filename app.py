@@ -41,4 +41,5 @@ if __name__ == "__main__":
     
     context = (cert_file, key_file)
     debug=os.getenv('FLASK_DEBUG', 'False') == 'True'
-    app.run(host='0.0.0.0', port=8443, debug=debug, ssl_context=context)
+    APP_PORT = int(os.getenv('APP_PORT', 8443))
+    app.run(host='0.0.0.0', port=APP_PORT, debug=debug, ssl_context=context)

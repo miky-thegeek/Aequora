@@ -211,6 +211,8 @@ The repository includes a `docker-compose.dev.yml` geared for development. It bu
 
 1. **Prepare env vars** – create an `.env` file or export the following:
    ```bash
+   APP_HOST=192.168.1.100
+   APP_PORT=8443
    FIREFLYIII_ID=...
    FIREFLYIII_SECRET=...
    FIREFLYIII_URL=https://your-fireflyiii
@@ -224,6 +226,30 @@ The repository includes a `docker-compose.dev.yml` geared for development. It bu
 The service maps port 8443 and will restart automatically if it crashes. The current directory is mounted into `/app` for rapid iteration.
 
 For a production-ready container configuration, remove the volume mount and switch to a tagged image or multi-stage build.
+
+### Production with Docker Compose
+
+A simpler `docker-compose.yml` is provided for production deployments. It uses the built image directly without mounting source code and is suitable for deployment on servers or cloud hosts.
+
+1. **Set environment variables** similarly via `.env` or the host environment:
+   ```bash
+   APP_HOST=192.168.1.100
+   APP_PORT=8443
+   FIREFLYIII_ID=...
+   FIREFLYIII_SECRET=...
+   FIREFLYIII_URL=https://your-fireflyiii
+   ```
+2. **Start the service** (no build step necessary if image already built or pulled):
+   ```bash
+   docker-compose up -d
+   ```
+3. **Monitor logs**:
+   ```bash
+   docker-compose logs -f
+   ```
+4. **Access the UI** at `https://localhost:8443` (or your server's address).
+
+For fully automated deployment, push your image to a registry and update the `image` field in `docker-compose.yml` accordingly.
 
 ### New Session Workflow
 

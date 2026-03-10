@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Aequora.  If not, see <https://www.gnu.org/licenses/>.
+import os
+
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 import urllib
@@ -62,9 +64,16 @@ class FireflyIII:
             state = secrets.token_urlsafe(32)
             self.state = state
 
+            APP_HOST = os.getenv('APP_HOST', '0.0.0.0')
+            APP_PORT = int(os.getenv('APP_PORT', 8443))
+
+            redirect_uri = f'https://{APP_HOST}:{APP_PORT}/oauth2_callback'
+            print(f"Generated redirect URI: {redirect_uri}")
+            logger.info(f"Generated redirect URI: {redirect_uri}")
+
             return self.client.prepare_request_uri(
                 self.base_url+"oauth/authorize",
-                redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
+                redirect_uri = redirect_uri,
                 state = state
             )
         except Exception as e:
@@ -93,9 +102,12 @@ class FireflyIII:
             return False
 
         try:
+            APP_HOST = os.getenv('APP_HOST', '0.0.0.0')
+            APP_PORT = int(os.getenv('APP_PORT', 8443))
+
             data = self.client.prepare_request_body(
                 code = code,
-                redirect_uri = 'https://192.168.1.25:8443/oauth2_callback',
+                redirect_uri = f'https://{APP_HOST}:{APP_PORT}/oauth2_callback',
                 client_id = self.client_id,
                 client_secret = self.client_secret
             )
@@ -144,7 +156,7 @@ class FireflyIII:
         Returns:
             bool: True if valid access token exists, False otherwise.
         """
-        #print("token: "+str(self.client.token))
+        print("token: "+str(self.client.token))
         #print("checkAccessToken: "+str(self.client.token))
         try:
             if hasattr(self.client, 'token') and self.client.token and 'access_token' in self.client.token:

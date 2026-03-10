@@ -20,7 +20,7 @@ RUN python -m pip install --upgrade pip \
     && pip install flask pandas openpyxl python-dateutil holidays oauthlib requests
 
 # Expose port if needed
-EXPOSE 8443
+EXPOSE ${APP_PORT:-8443}
 
 # Default command
 CMD ["python", "app.py"]
